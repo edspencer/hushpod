@@ -1,6 +1,6 @@
 import { Hono, type Context } from 'hono'
 import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { stat, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { eq, and, desc, isNotNull } from 'drizzle-orm'
@@ -82,11 +82,21 @@ async function serveAudio(c: Context, absPath: string) {
   return c.body(stream, 200, { ...baseHeaders, 'Content-Length': String(size) })
 }
 
-feedsRoute.get('/audio/:slug/:guid/:file', (c) => {
+feedsRoute.get('/audio/:slug/:guid/:file', async (c) => {
   const slug = sanitizeGuid(c.req.param('slug'))
   const guid = sanitizeGuid(c.req.param('guid'))
   const file = c.req.param('file')
-  if (file !== 'clean.mp3' && file !== 'original.mp3') return c.json({ error: 'not found' }, 404)
-  const absPath = join(SHOWS_DIR, slug, guid, file)
-  return serveAudio(c, absPath)
+  const dir = join(SHOWS_DIR, slug, guid)
+
+  if (file === 'clean.mp3') return serveAudio(c, join(dir, 'clean.mp3'))
+
+  // Original is kept under its real extension (original.mp3 / .m4a / ...).
+  if (file.startsWith('original')) {
+    const entry = await readdir(dir)
+      .then((files) => files.find((f) => f.startsWith('original.')))
+      .catch(() => undefined)
+    if (!entry) return c.json({ error: 'not found' }, 404)
+    return serveAudio(c, join(dir, entry))
+  }
+  return c.json({ error: 'not found' }, 404)
 })

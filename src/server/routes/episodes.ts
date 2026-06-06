@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
 import { eq, desc } from 'drizzle-orm'
 import { db } from '../db/index.js'
-import { episodes, ads } from '../db/schema.js'
+import { episodes, ads, shows } from '../db/schema.js'
 import { queue, reprocessEpisode } from '../services/processor.js'
+import { sanitizeGuid } from '../lib/config.js'
 
 export const episodesRoute = new Hono()
 
@@ -23,10 +24,20 @@ episodesRoute.get('/episodes/:id', (c) => {
   const id = Number(c.req.param('id'))
   const episode = db.select().from(episodes).where(eq(episodes.id, id)).get()
   if (!episode) return c.json({ error: 'not found' }, 404)
+  const show = db.select({ slug: shows.slug, title: shows.title }).from(shows).where(eq(shows.id, episode.showId)).get()
   const episodeAds = db.select().from(ads).where(eq(ads.episodeId, id)).orderBy(ads.startTime).all()
   // Omit the (large) transcript from the detail payload by default.
   const { transcript, ...rest } = episode
-  return c.json({ ...rest, hasTranscript: !!transcript, ads: episodeAds })
+  const guid = sanitizeGuid(episode.guid)
+  return c.json({
+    ...rest,
+    showSlug: show?.slug ?? null,
+    showTitle: show?.title ?? null,
+    hasTranscript: !!transcript,
+    audioCleanUrl: show ? `/audio/${show.slug}/${guid}/clean.mp3` : null,
+    audioOriginalUrl: show ? `/audio/${show.slug}/${guid}/original.mp3` : null,
+    ads: episodeAds,
+  })
 })
 
 /** Start (or restart) the full pipeline for an episode. */
