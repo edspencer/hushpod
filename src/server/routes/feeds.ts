@@ -75,6 +75,21 @@ feedsRoute.get('/feed/:slug', (c) => {
   return serveFeed(c, eps, buildShowFeed(baseUrl, show, eps))
 })
 
+const AUDIO_CONTENT_TYPES: Record<string, string> = {
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  mp4: 'audio/mp4',
+  aac: 'audio/aac',
+  ogg: 'audio/ogg',
+  opus: 'audio/opus',
+  wav: 'audio/wav',
+}
+
+function audioContentType(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() ?? ''
+  return AUDIO_CONTENT_TYPES[ext] ?? 'application/octet-stream'
+}
+
 /** Serve a file with HTTP Range support (206) — required by podcast players. */
 async function serveAudio(c: Context, absPath: string) {
   let size: number
@@ -86,7 +101,7 @@ async function serveAudio(c: Context, absPath: string) {
 
   const range = c.req.header('range')
   const baseHeaders: Record<string, string> = {
-    'Content-Type': 'audio/mpeg',
+    'Content-Type': audioContentType(absPath),
     'Accept-Ranges': 'bytes',
   }
 
