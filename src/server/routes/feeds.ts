@@ -24,6 +24,34 @@ function doneEpisodes(showId: number): Episode[] {
     .all()
 }
 
+/** Weak ETag derived from episode count + newest mtime, so we can answer 304
+ * to conditional requests without re-serializing the feed body. */
+function feedEtag(eps: Episode[]): string {
+  let newest = 0
+  for (const e of eps) {
+    const t = e.updatedAt ? new Date(e.updatedAt).getTime() : 0
+    if (t > newest) newest = t
+  }
+  return `W/"${eps.length}-${newest}"`
+}
+
+/** If the client's If-None-Match matches, send 304; otherwise serve the body
+ * with ETag + Last-Modified headers set. */
+function serveFeed(c: Context, eps: Episode[], body: string) {
+  const etag = feedEtag(eps)
+  if (c.req.header('if-none-match') === etag) return c.body(null, 304, { ETag: etag })
+  let newest = 0
+  for (const e of eps) {
+    const t = e.updatedAt ? new Date(e.updatedAt).getTime() : 0
+    if (t > newest) newest = t
+  }
+  return c.body(body, 200, {
+    ...XML_HEADERS,
+    ETag: etag,
+    ...(newest > 0 ? { 'Last-Modified': new Date(newest).toUTCString() } : {}),
+  })
+}
+
 feedsRoute.get('/feed/all', (c) => {
   const baseUrl = getSetting('baseUrl')
   const rows = db
@@ -35,7 +63,7 @@ feedsRoute.get('/feed/all', (c) => {
     .limit(200)
     .all()
   const items = rows.map((r) => ({ show: r.shows as Show, ep: r.episodes as Episode }))
-  return c.body(buildAllFeed(baseUrl, items), 200, XML_HEADERS)
+  return serveFeed(c, items.map((i) => i.ep), buildAllFeed(baseUrl, items))
 })
 
 feedsRoute.get('/feed/:slug', (c) => {
@@ -43,7 +71,8 @@ feedsRoute.get('/feed/:slug', (c) => {
   const show = db.select().from(shows).where(eq(shows.slug, slug)).get()
   if (!show) return c.json({ error: 'not found' }, 404)
   const baseUrl = getSetting('baseUrl')
-  return c.body(buildShowFeed(baseUrl, show, doneEpisodes(show.id)), 200, XML_HEADERS)
+  const eps = doneEpisodes(show.id)
+  return serveFeed(c, eps, buildShowFeed(baseUrl, show, eps))
 })
 
 /** Serve a file with HTTP Range support (206) — required by podcast players. */

@@ -11,18 +11,23 @@ lessons distilled from prior art (MinusPod / Podly / AGPAR).
 
 ## Status
 
-Walking skeleton — backend complete and proven end-to-end on real feeds for
-everything except the two AI steps (which need your own infrastructure):
+Functional end to end — the full pipeline has been validated on real feeds with
+a local Ollama model, and the web UI + Docker image are working.
 
 | Step | State |
 |------|-------|
 | Feed subscribe / parse / discovery | ✅ proven on real feeds |
 | Download (CDN redirects, byte cap, content-type) | ✅ |
-| Transcribe (local whisper.cpp / remote OpenAI-compatible) | ⏳ needs a model or endpoint |
-| Ad detection (LLM, segment-id mapping + JSON repair) | ⏳ needs an LLM endpoint |
+| Transcribe (local whisper.cpp / remote OpenAI-compatible) | ✅ chunked, Metal-accelerated, validated |
+| Ad detection (LLM, segment-id mapping + JSON repair) | ✅ validated with Ollama qwen2.5:14b |
 | Cut (FFmpeg, keep-range math, transition-sound detection) | ✅ proven on real audio |
-| Clean RSS + Range audio serving | ✅ proven (206 Partial Content) |
-| React UI | ⛔ not started |
+| Clean RSS (ETag/304) + Range audio serving | ✅ proven (206 + 304) |
+| React UI (dashboard, show/episode, player, settings) | ✅ builds + serves |
+| Docker image | ✅ builds, boots, serves |
+
+Validated locally: subscribing to NPR's Up First, all 10 episodes processed
+through transcribe→detect→cut with Ollama; advertisers correctly extracted
+(AT&T, Progressive, Mint Mobile, Schwab, Carvana).
 
 ## Requirements
 
@@ -73,6 +78,17 @@ curl localhost:3000/api/status          # watch the queue
 
 Clean feed: `GET /feed/{slug}` (or `/feed/all`). Subscribe to that URL in your
 podcast app.
+
+## Docker
+
+```sh
+docker compose up --build
+```
+
+Serves on port 3000 with `./data` mounted as a volume. The image bundles
+FFmpeg and the whisper.cpp build toolchain (cmake/make/g++), so local
+transcription works out of the box. To reach a host-local Ollama from the
+container, set the LLM base URL to `http://host.docker.internal:11434/v1`.
 
 ## Key design decisions
 
