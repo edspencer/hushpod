@@ -26,25 +26,17 @@ function enqueueShowPending(showId: number): void {
 }
 
 showsRoute.get('/', (c) => {
-  const rows = db
-    .select({
-      id: shows.id,
-      title: shows.title,
-      slug: shows.slug,
-      feedUrl: shows.feedUrl,
-      description: shows.description,
-      imageUrl: shows.imageUrl,
-      isActive: shows.isActive,
-      episodeLimit: shows.episodeLimit,
-      removeAds: shows.removeAds,
-      removePromos: shows.removePromos,
-      lastCheckedAt: shows.lastCheckedAt,
-      episodeCount: sql<number>`(select count(*) from episodes where episodes.show_id = ${shows.id})`,
-    })
-    .from(shows)
-    .orderBy(desc(shows.createdAt))
+  const rows = db.select().from(shows).orderBy(desc(shows.createdAt)).all()
+  // Count episodes per show with a grouped query. (A correlated subquery via
+  // `${shows.id}` renders the column unqualified as "id", which SQLite binds to
+  // episodes.id — a silent footgun — so we avoid it.)
+  const counts = db
+    .select({ showId: episodes.showId, count: sql<number>`count(*)` })
+    .from(episodes)
+    .groupBy(episodes.showId)
     .all()
-  return c.json(rows)
+  const countMap = new Map(counts.map((r) => [r.showId, r.count]))
+  return c.json(rows.map((s) => ({ ...s, episodeCount: countMap.get(s.id) ?? 0 })))
 })
 
 showsRoute.post('/', zValidator('json', CreateShowSchema), async (c) => {
