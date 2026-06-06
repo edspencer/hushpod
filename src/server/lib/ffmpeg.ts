@@ -168,3 +168,34 @@ export async function cutToRanges(
 export async function toWav16k(input: string, output: string): Promise<void> {
   await run(FFMPEG, ['-v', 'error', '-i', input, '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', '-y', output])
 }
+
+/**
+ * Extract a [start, start+dur] slice as 16kHz mono WAV. Input-side seek (-ss
+ * before -i) is fast and accurate to within an MP3 frame (~26ms), which is fine
+ * for chunk boundaries that overlap anyway.
+ */
+export async function extractSliceWav(
+  input: string,
+  start: number,
+  dur: number,
+  output: string,
+): Promise<void> {
+  await run(FFMPEG, [
+    '-v',
+    'error',
+    '-ss',
+    Math.max(0, start).toString(),
+    '-t',
+    dur.toString(),
+    '-i',
+    input,
+    '-ac',
+    '1',
+    '-ar',
+    '16000',
+    '-c:a',
+    'pcm_s16le',
+    '-y',
+    output,
+  ])
+}

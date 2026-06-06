@@ -61,7 +61,7 @@ function buildUserPrompt(segments: Transcript['segments'], previousAds: Ad[]): s
 }
 
 /** Extract the first balanced JSON object from a string (repair path). */
-function extractJson(text: string): unknown {
+export function extractJson(text: string): unknown {
   const start = text.indexOf('{')
   if (start === -1) throw new Error('no JSON object found in model output')
   let depth = 0
@@ -113,7 +113,7 @@ async function detectWindow(
 }
 
 /** Merge detections whose id-ranges overlap, keeping the widest span. */
-function mergeOverlaps(detected: DetectedSegment[]): DetectedSegment[] {
+export function mergeOverlaps(detected: DetectedSegment[]): DetectedSegment[] {
   const sorted = [...detected].sort((a, b) => a.startSegmentId - b.startSegmentId)
   const merged: DetectedSegment[] = []
   for (const d of sorted) {
@@ -140,7 +140,6 @@ export async function detectAds(
   const segs = transcript.segments
   if (segs.length === 0) return []
 
-  const byId = new Map(segs.map((s) => [s.id, s]))
   const raw: DetectedSegment[] = []
 
   for (let i = 0; i < segs.length; i += WINDOW_SEGMENTS - WINDOW_OVERLAP) {
@@ -152,7 +151,22 @@ export async function detectAds(
     if (i + WINDOW_SEGMENTS >= segs.length) break
   }
 
-  const merged = mergeOverlaps(raw)
+  const result = mapDetectionsToAds(raw, segs)
+  log.info(`detected ${result.length} ad/promo segment(s)`)
+  return result
+}
+
+/**
+ * Merge overlapping detections and map their segment-id ranges back to exact
+ * start/end times (and joined ad text) from the transcript. Out-of-range ids
+ * are dropped. Pure — the testable heart of the segment-id approach.
+ */
+export function mapDetectionsToAds(
+  detected: DetectedSegment[],
+  segments: Transcript['segments'],
+): DetectedAd[] {
+  const byId = new Map(segments.map((s) => [s.id, s]))
+  const merged = mergeOverlaps(detected)
   const result: DetectedAd[] = []
   for (const d of merged) {
     const lo = Math.min(d.startSegmentId, d.endSegmentId)
@@ -163,7 +177,7 @@ export async function detectAds(
       log.warn(`dropping detection with out-of-range ids ${lo}-${hi}`)
       continue
     }
-    const spanText = segs
+    const spanText = segments
       .filter((s) => s.id >= lo && s.id <= hi)
       .map((s) => s.text)
       .join(' ')
@@ -176,7 +190,5 @@ export async function detectAds(
       reason: d.reason,
     })
   }
-
-  log.info(`detected ${result.length} ad/promo segment(s)`)
   return result
 }
