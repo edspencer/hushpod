@@ -1,0 +1,18 @@
+services:
+  hushpod:
+    build: .
+    # Or use a published image once you push one:
+    # image: ghcr.io/youruser/hushpod:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - HUSHPOD_DATA_DIR=/app/data
+      - PORT=3000
+      # Point at your LLM + (optionally) whisper endpoints, or configure via the
+      # Settings UI. If using a host-local Ollama, reach it from the container at
+      # http://host.docker.internal:11434/v1 (extra_hosts below on Linux).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
