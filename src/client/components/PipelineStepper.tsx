@@ -1,7 +1,7 @@
 import { Check, Loader2, Workflow, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, StatusBadge } from '@client/components/ui'
 import type { EpisodeStatus, Telemetry, TelemetryStage } from '@client/lib/api'
-import { formatMs, formatUsd } from '@client/lib/format'
+import { formatBytes, formatMs, formatUsd } from '@client/lib/format'
 import { cn } from '@client/lib/cn'
 
 const STEPS: { key: EpisodeStatus; label: string; stage: TelemetryStage | null }[] = [
@@ -21,22 +21,23 @@ const IN_FLIGHT: ReadonlySet<EpisodeStatus> = new Set([
   'cutting',
 ])
 
-/** Timing (and, for detect, cost) to show under a step — from telemetry. */
+/** Timing plus a stage-specific second line (download size, detect cost, total
+ * cost) to show under a step — from telemetry. */
 function stepFacts(
   step: (typeof STEPS)[number],
   telemetry: Telemetry,
-): { dur: string | null; cost: string | null } {
+): { dur: string | null; sub: string | null } {
   if (step.key === 'done') {
     return {
       dur: telemetry.totalMs != null ? formatMs(telemetry.totalMs) : null,
-      cost: telemetry.costUsd ? formatUsd(telemetry.costUsd) : null,
+      sub: telemetry.costUsd ? formatUsd(telemetry.costUsd) : null,
     }
   }
   const st = step.stage ? telemetry.stages[step.stage] : undefined
-  return {
-    dur: st?.ms != null ? formatMs(st.ms) : null,
-    cost: step.stage === 'detect' && st?.costUsd ? formatUsd(st.costUsd) : null,
-  }
+  let sub: string | null = null
+  if (step.stage === 'download' && st?.bytes != null) sub = formatBytes(st.bytes)
+  else if (step.stage === 'detect' && st?.costUsd) sub = formatUsd(st.costUsd)
+  return { dur: st?.ms != null ? formatMs(st.ms) : null, sub }
 }
 
 export interface PipelineStepperProps {
@@ -72,7 +73,7 @@ export function PipelineStepper({ status, telemetry, className }: PipelineSteppe
             const active = status === step.key && inFlight
             const failed = step.stage != null && failedStage === step.stage
             const last = i === STEPS.length - 1
-            const { dur, cost } = stepFacts(step, telemetry)
+            const { dur, sub } = stepFacts(step, telemetry)
             return (
               <li key={step.key} className={cn('flex items-start', !last && 'flex-1')}>
                 <div className="flex w-full flex-col items-center gap-1.5">
@@ -106,10 +107,10 @@ export function PipelineStepper({ status, telemetry, className }: PipelineSteppe
                   >
                     {step.label}
                   </span>
-                  {(dur || cost) && (
+                  {(dur || sub) && (
                     <span className="flex flex-col items-center text-[10px] leading-tight tabular-nums text-muted">
                       {dur && <span>{dur}</span>}
-                      {cost && <span className="text-brand-400/80">{cost}</span>}
+                      {sub && <span className="text-brand-400/80">{sub}</span>}
                     </span>
                   )}
                 </div>
