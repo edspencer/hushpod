@@ -1,6 +1,7 @@
 # HushPod — single-stage image. whisper.cpp is compiled at runtime by
 # nodejs-whisper, so the build toolchain (cmake/make/g++) must be present in the
-# final image, not just at install time. ffmpeg is required for all audio work.
+# final image, not just at install time. ffmpeg is required for all audio work,
+# and wget/curl are required by whisper.cpp's model download script.
 FROM node:22-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -10,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       g++ \
       python3 \
       git \
+      wget \
+      curl \
       ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
