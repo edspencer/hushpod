@@ -21,7 +21,6 @@ export interface ShowSettingsPanelProps {
 interface FormState {
   isActive: boolean
   removeAds: boolean
-  removePromos: boolean
   removeFluff: boolean
   episodeLimit: string
   detectionGuidance: string
@@ -31,7 +30,6 @@ function fromShow(show: Show): FormState {
   return {
     isActive: show.isActive,
     removeAds: show.removeAds,
-    removePromos: show.removePromos,
     removeFluff: show.removeFluff,
     episodeLimit: String(show.episodeLimit),
     detectionGuidance: show.detectionGuidance ?? '',
@@ -82,7 +80,6 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
   const dirty =
     form.isActive !== baseline.isActive ||
     form.removeAds !== baseline.removeAds ||
-    form.removePromos !== baseline.removePromos ||
     form.removeFluff !== baseline.removeFluff ||
     form.episodeLimit !== baseline.episodeLimit ||
     form.detectionGuidance !== baseline.detectionGuidance
@@ -92,7 +89,6 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
     const patch: ShowSettingsPatch = {}
     if (form.isActive !== show.isActive) patch.isActive = form.isActive
     if (form.removeAds !== show.removeAds) patch.removeAds = form.removeAds
-    if (form.removePromos !== show.removePromos) patch.removePromos = form.removePromos
     if (form.removeFluff !== show.removeFluff) patch.removeFluff = form.removeFluff
     if (limitNum !== show.episodeLimit) patch.episodeLimit = limitNum
     const g = form.detectionGuidance.trim()
@@ -122,23 +118,12 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
           />
           <Row
             title="Remove ads"
-            description="Strip detected advertisements from the clean feed."
+            description="Strip sponsor reads, cross-promotions, and subscribe/buy plugs from the clean feed."
             control={
               <Switch
                 checked={form.removeAds}
                 onCheckedChange={(v) => set('removeAds', v)}
                 aria-label="Remove ads"
-              />
-            }
-          />
-          <Row
-            title="Remove promos"
-            description="Strip cross-promotions and host reads."
-            control={
-              <Switch
-                checked={form.removePromos}
-                onCheckedChange={(v) => set('removePromos', v)}
-                aria-label="Remove promos"
               />
             }
           />
@@ -179,15 +164,15 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
           </Label>
           <p className="text-xs text-muted">
             Free-form hints for the ad detector on this show. e.g. &ldquo;Sponsor reads are
-            60&ndash;90s near the start and a promo at the very end; the long interview is editorial
-            and must never be cut.&rdquo; Applies on the next (re)process.
+            60&ndash;90s near the start and a cross-promo at the very end; the long interview is
+            editorial and must never be cut.&rdquo; Applies on the next (re)process.
           </p>
           <textarea
             id="detection-guidance"
             rows={4}
             value={form.detectionGuidance}
             onChange={(e) => set('detectionGuidance', e.target.value)}
-            placeholder="Optional — describe how this show's ads/promos behave…"
+            placeholder="Optional — describe how this show's ads behave…"
             className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>

@@ -414,7 +414,6 @@ function previousEpisodeTranscripts(show: Show, current: Episode, limit = 4): Tr
 function labelsToCut(show: Show): Set<string> {
   const set = new Set<string>()
   if (show.removeAds) set.add('ad')
-  if (show.removePromos) set.add('promo')
   if (show.removeFluff) set.add('fluff')
   return set
 }

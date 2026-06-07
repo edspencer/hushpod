@@ -14,13 +14,6 @@ const CATS = [
     bg: 'bg-stone-500',
   },
   { key: 'ad', label: 'Ads', fill: 'fill-danger', stroke: 'stroke-danger', bg: 'bg-danger' },
-  {
-    key: 'promo',
-    label: 'Promos',
-    fill: 'fill-warning',
-    stroke: 'stroke-warning',
-    bg: 'bg-warning',
-  },
   { key: 'fluff', label: 'Fluff', fill: 'fill-info', stroke: 'stroke-info', bg: 'bg-info' },
 ] as const
 
@@ -56,12 +49,12 @@ export function ShowStats({ episodes, ads, className }: ShowStatsProps) {
     return episodes
       .filter((e) => e.status === 'done' && e.duration && e.duration > 0)
       .map((e) => {
-        const removed: Breakdown = { content: 0, ad: 0, promo: 0, fluff: 0 }
+        const removed: Breakdown = { content: 0, ad: 0, fluff: 0 }
         for (const a of adsByEp.get(e.id) ?? []) {
           removed[a.label as AdLabel] += Math.max(0, a.endTime - a.startTime)
         }
         const total = e.duration as number
-        const cut = removed.ad + removed.promo + removed.fluff
+        const cut = removed.ad + removed.fluff
         removed.content = Math.max(0, total - cut)
         return {
           id: e.id,
@@ -74,7 +67,7 @@ export function ShowStats({ episodes, ads, className }: ShowStatsProps) {
   }, [episodes, ads])
 
   const totals = useMemo<Breakdown>(() => {
-    const t: Breakdown = { content: 0, ad: 0, promo: 0, fluff: 0 }
+    const t: Breakdown = { content: 0, ad: 0, fluff: 0 }
     for (const p of points) for (const c of CATS) t[c.key] += p[c.key]
     return t
   }, [points])

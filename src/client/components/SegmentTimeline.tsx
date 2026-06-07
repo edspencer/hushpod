@@ -4,7 +4,6 @@ import { cn } from '@client/lib/cn'
 // Same palette as the episode player's scrub-bar markers.
 const LABEL_COLOR: Record<AdLabel, string> = {
   ad: 'bg-danger/70',
-  promo: 'bg-warning/70',
   fluff: 'bg-info/70',
 }
 

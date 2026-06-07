@@ -5,17 +5,14 @@ import { cn } from '@client/lib/cn'
 // Subtle background tints (readable behind text), matching the label palette.
 const LABEL_TINT: Record<AdLabel, string> = {
   ad: 'bg-danger/15',
-  promo: 'bg-warning/15',
   fluff: 'bg-info/15',
 }
 const LABEL_TEXT: Record<AdLabel, string> = {
   ad: 'Ad',
-  promo: 'Promo',
   fluff: 'Fluff',
 }
 const CHIP: Record<AdLabel, string> = {
   ad: 'bg-danger/25 text-danger',
-  promo: 'bg-warning/25 text-warning',
   fluff: 'bg-info/25 text-info',
 }
 
@@ -28,7 +25,7 @@ export interface TranscriptViewProps {
 }
 
 /** The episode transcript rendered as a continuous read, with detected
- * ad/promo/fluff spans highlighted in place and the segment under the
+ * ad/fluff spans highlighted in place and the segment under the
  * playhead emphasized. Lets you eyeball whether the classifier got it right. */
 export function TranscriptView({ transcript, ads, currentTime, className }: TranscriptViewProps) {
   const segments = transcript.segments
@@ -63,7 +60,7 @@ export function TranscriptView({ transcript, ads, currentTime, className }: Tran
     <div className={cn('space-y-2', className)}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
         <span>Highlighted = removed:</span>
-        {(['ad', 'promo', 'fluff'] as AdLabel[]).map((l) => (
+        {(['ad', 'fluff'] as AdLabel[]).map((l) => (
           <span key={l} className="inline-flex items-center gap-1">
             <span className={cn('inline-block h-2.5 w-2.5 rounded-sm', LABEL_TINT[l])} />
             {LABEL_TEXT[l]}

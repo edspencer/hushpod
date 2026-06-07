@@ -9,7 +9,7 @@ export interface AdTableProps {
   className?: string
 }
 
-const LABELS: AdLabel[] = ['ad', 'promo', 'fluff']
+const LABELS: AdLabel[] = ['ad', 'fluff']
 
 function formatDuration(seconds: number): string {
   const total = Math.max(0, Math.round(seconds))
@@ -47,7 +47,7 @@ export function AdTable({ ads, className }: AdTableProps) {
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2">
           <Megaphone className="h-4 w-4 text-muted" />
-          Ads &amp; promos
+          Ads &amp; fluff
         </CardTitle>
         <Badge variant="secondary" className="tabular-nums">
           {ads.length}

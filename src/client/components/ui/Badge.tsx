@@ -11,7 +11,6 @@ export type BadgeVariant =
   | 'danger'
   | 'info'
   | 'ad'
-  | 'promo'
   | 'fluff'
 
 const variantClasses: Record<BadgeVariant, string> = {
@@ -23,7 +22,6 @@ const variantClasses: Record<BadgeVariant, string> = {
   danger: 'border-transparent bg-danger/15 text-danger',
   info: 'border-transparent bg-info/15 text-info',
   ad: 'border-transparent bg-danger/15 text-danger',
-  promo: 'border-transparent bg-warning/15 text-warning',
   fluff: 'border-transparent bg-info/15 text-info',
 }
 

@@ -13,7 +13,6 @@ const SAVE_THROTTLE_MS = 2000
 
 const MARKER_COLOR: Record<AdLabel, string> = {
   ad: 'bg-danger/70',
-  promo: 'bg-warning/70',
   fluff: 'bg-info/70',
 }
 

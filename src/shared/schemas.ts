@@ -32,11 +32,15 @@ export type Transcript = z.infer<typeof TranscriptSchema>
  * those back to exact start/end times from the whisper transcript ourselves.
  * ------------------------------------------------------------------ */
 
-// "fluff" = recurring show scaffolding (the standard open/intro spiel, the
-// "here's how this podcast works" explainer, the sign-off, credits, station IDs
-// and other repeated housekeeping). It is neither editorial content nor a
-// third-party ad, so it gets its own label and its own per-show cut toggle.
-export const AD_LABELS = ['ad', 'promo', 'fluff'] as const
+// Three-way classification of every part of an episode:
+// - "content" = the actual episode (editorial) — NEVER flagged/removed, so it is
+//   not a stored label; it's simply everything we don't return.
+// - "ad"   = any paid or promotional material: third-party sponsor reads,
+//   cross-promotions for other shows, membership/subscribe/newsletter/book/ticket
+//   plugs — anything pushing a purchase, signup, or another property.
+// - "fluff" = recurring, non-commercial show scaffolding (intro spiel, "how this
+//   show works", disclaimers, sign-off, credits, call-in line, follow/rate-us).
+export const AD_LABELS = ['ad', 'fluff'] as const
 export type AdLabelValue = (typeof AD_LABELS)[number]
 
 export const DetectedSegmentSchema = z.object({
@@ -56,7 +60,7 @@ export const DetectedSegmentSchema = z.object({
     .nullable()
     .optional()
     .describe('Advertiser/company name ONLY if named in THIS transcript, else null'),
-  reason: z.string().optional().describe('Brief explanation of why this span is an ad/promo/fluff'),
+  reason: z.string().optional().describe('Brief explanation of why this span is an ad or fluff'),
   confidence: z
     .enum(['low', 'medium', 'high'])
     .optional()
@@ -179,7 +183,6 @@ export const UpdateShowSchema = z.object({
   isActive: z.boolean().optional(),
   episodeLimit: z.number().int().positive().optional(),
   removeAds: z.boolean().optional(),
-  removePromos: z.boolean().optional(),
   removeFluff: z.boolean().optional(),
   detectionGuidance: z.string().max(4000).nullable().optional(),
 })

@@ -85,11 +85,11 @@ test('reclassifyFluff: a sponsor read swept into fluff becomes an ad', () => {
   assert.equal(out.label, 'ad')
 })
 
-test('reclassifyFluff: a cross-promo swept into fluff becomes a promo', () => {
+test('reclassifyFluff: a cross-promo swept into fluff becomes an ad', () => {
   const out = reclassifyFluff(
     fluff("Every episode of It's Been a Minute. Follow it wherever you get your podcasts."),
   )
-  assert.equal(out.label, 'promo')
+  assert.equal(out.label, 'ad')
 })
 
 test('reclassifyFluff: a URL with a path marks an ad', () => {

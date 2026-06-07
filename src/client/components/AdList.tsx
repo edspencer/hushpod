@@ -38,7 +38,6 @@ function fmtDuration(seconds: number): string {
 
 const LABEL_TEXT: Record<AdLabel, string> = {
   ad: 'Ad',
-  promo: 'Promo',
   fluff: 'Fluff',
 }
 
@@ -197,7 +196,7 @@ export function AdList({
           ) : null)}
 
         {ads.length === 0 ? (
-          <p className="py-2 text-sm text-muted">No ads or promos detected yet.</p>
+          <p className="py-2 text-sm text-muted">No ads or fluff detected yet.</p>
         ) : (
           <div className="space-y-2">
             {ads.map((ad) => (

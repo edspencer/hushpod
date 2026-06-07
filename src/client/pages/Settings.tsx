@@ -124,7 +124,7 @@ export default function Settings() {
       {/* 1. LLM ------------------------------------------------------ */}
       <SettingsSection
         title="LLM (ad detection)"
-        description="Model used to identify ad and promo segments in transcripts."
+        description="Model used to identify ad and fluff segments in transcripts."
       >
         <Field htmlFor="llmProvider" label="Provider">
           <Select

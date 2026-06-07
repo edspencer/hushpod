@@ -33,34 +33,73 @@ export interface DetectedAd {
 // likely be editorial, or the model itself wasn't confident.
 const SUSPECT_MAX_SECONDS = 5 * 60
 
-const SYSTEM_PROMPT = `You are an expert at identifying advertisements and promotional content in podcast transcripts.
+const SYSTEM_PROMPT = `You classify the parts of a podcast transcript so the non-content parts can be removed.
 
-You will receive a podcast transcript as a numbered list of segments, one per line, in the form:
+You receive the transcript as a numbered list of segments, one per line:
 [<id>] <text>
 
-Identify every span that is an advertisement, sponsor read, cross-promotion, or recurring show boilerplate. For each, return the id of the FIRST and LAST segment of the span (inclusive). Use these labels:
-- "ad": a paid advertisement / sponsor read for a third-party product or service
-- "promo": an explicit plug to buy/subscribe/follow/support something — another show, Patreon, merch, a newsletter, or the show's own paid tier
-- "fluff": recurring show scaffolding that is neither editorial content nor a third-party ad — the standard show open / cold-open spiel, a "here's how this podcast works" explainer, the sign-off, production credits, station identification, and similar repeated housekeeping. It is the same most weeks. The host billboard ("I'm X, and this is <Show>") and the closing credits are fluff, NOT ads.
+Classify every part into exactly ONE of three categories. Return ONLY the "ad" and "fluff" spans (content is everything else and is never returned). For each returned span give the id of its FIRST and LAST segment (inclusive).
 
-What an ad or promo ACTUALLY looks like — it contains explicit promotional language:
-- a call to action ("go to…", "sign up", "use code…", "check out…", "download…")
-- a URL, promo code, or pricing/offer
-- a sponsorship frame ("this episode is sponsored by…", "support for this show comes from…")
-If a span has none of these signals AND is not recurring boilerplate, it is editorial — do NOT flag it.
+CATEGORIES
+- "content" — the actual episode: the news, story, interview, narration, analysis, jokes, the quiz/game. This is what the listener came for. NEVER return it. (It is content even when it names brands, products, companies, or the episode's own topic.)
+- "ad" — ANY paid or promotional material: a third-party sponsor read, a cross-promotion for another show, OR a plug to buy/subscribe/support/sign-up for something (a newsletter, book, app, membership/ad-free tier, live-show tickets, merch, another podcast). If it pushes the listener toward a purchase, a signup, a website, a promo code, or another property, it is an ad.
+- "fluff" — recurring, NON-commercial show scaffolding that is the same most weeks: the host billboard/show open, a "here's how this show works" explainer, a recurring legal/medical disclaimer, the sign-off, the production-credits roll, station identification, the call-in line, and "follow/rate/review us" housekeeping. Fluff sells nothing.
 
-CRITICAL — never flag editorial content:
-- Interview answers, host/guest discussion, narration, storytelling, and analysis are NEVER ads, promos, or fluff, even when they mention a company, product, brand, or the episode's own topic.
-- A passage is not a promo just because it resembles the episode description.
+EXAMPLES — these are "ad" (return them):
+- "This message comes from NPR sponsor Charles Schwab. Learn more at Schwab.com."
+- "Support for this podcast and the following message come from DataIQ, the data quality company."
+- "This episode is brought to you by SoFi. Fast funds, terms apply, at sofi.com/show."
+- "Ever invest in something that seemed incredible at first but didn't live up to the hype? LinkedIn has a word for that. Cut the bullspend. Go to LinkedIn.com/show." (a host-read native ad — no "sponsored by" frame, but it sells LinkedIn)
+- "This is a paid ad by BetterHelp. Sign up and get 10% off at betterhelp.com/show."
+- "Use code SHOW for 20% off your first order. That's example.com, code SHOW."
+- "Zepbound is a prescription medicine. Talk to your doctor. Learn more at zepbound.lilly.com." (a DTC pharma read)
+- "Spring is a time to refresh the things you use every day — even your socks. That's why I love Bombas." (a conversational native read with no URL)
+- "This week on the NPR Politics Podcast, we break down the primaries. Listen wherever you get your podcasts." (a cross-promo for another show)
+- "Want to listen to this show sponsor-free? Get NPR+ at plus.npr.org." (a paid-tier / ad-free upsell)
+- "Don't forget to sign up for my newsletter — it's free at example.com or on Substack." (a self-promo signup plug)
+- "Come see us live! We'll be at the Riverside Theater in Milwaukee. Tickets at example.org." (a live-show / ticket plug)
+- "Pick up my new book, 'Protocols', available everywhere books are sold." (a book plug)
+- A comedian delivering a jokey sponsor read is STILL an ad if it names a sponsor and a CTA/URL.
 
-Length: ads/promos are usually seconds to ~3 minutes; fluff scaffolding (billboard, sign-off, credits) is usually short, though a "how this show works" explainer can run longer. Be increasingly skeptical of long ad/promo spans — a span over ~5 minutes is almost always editorial. Only flag a long span if it contains sustained, unmistakable ad language, and reflect your doubt in "confidence".
+EXAMPLES — these are "fluff" (return them):
+- "I'm Steve Inskeep with A. Martinez, and this is Up First from NPR News." (host billboard)
+- "Welcome to Stuff You Should Know, a production of iHeartRadio." (show open)
+- "Welcome to the Huberman Lab Podcast, where we discuss science and science-based tools for everyday life." (recurring intro spiel)
+- "This podcast is presented solely for educational and entertainment purposes. I'm not a licensed therapist." (recurring disclaimer)
+- "That's our show for today. It was produced by… edited by… Our technical director is…" (credits roll)
+- "Thanks for listening. Join us again tomorrow." (sign-off)
+- "If you'd like to play on the air, call us at 1-888-WAIT-WAIT." (recurring call-in line)
+- "Follow us on Instagram @show, and rate and review us wherever you listen." (recurring housekeeping that sells nothing)
+- "Tonight I'll read you a story, then read it again a little slower, to help you fall asleep." (recurring "how this show works" explainer)
+- "Stay with us." / "We'll be right back." / "And now, back to the show." (break bumpers)
 
-Rules:
-- Refer to segments ONLY by their [id]. Do not invent timestamps.
-- A single ad break may contain multiple distinct ads — return them as separate spans.
-- Set "company" to an advertiser/product name ONLY if it is named in THIS transcript. Never carry an advertiser over from another episode.
-- Set "confidence": high only when explicit ad language is present; medium if likely; low if uncertain.
-- Keep "reason" to one short sentence, citing the ad signal (or recurring-boilerplate cue) you found.`
+EXAMPLES — these are "content" (do NOT return):
+- A founder describing their own company: "So we started the company in a garage in 2009…"
+- A host mentioning a brand in a story: "She drove a Tesla to the lake house that night."
+- News about a company: "Apple reported record earnings on Tuesday."
+- A cold open unique to THIS episode (even if it sounds structural): "Today, the strange story of a missing painting."
+- The quiz, the interview answers, the narration — the substance of the episode.
+- A comedic aside like "you've got to see the video of this on YouTube" with no signup/URL push.
+
+SPLITTING — this matters a lot:
+- Ad breaks usually STACK several different sponsors back-to-back. Return ONE separate "ad" span PER sponsor, each from its own opening line to its own closing line/URL. Do NOT merge a 3-sponsor break into one span. (e.g. an AT&T read, then a Bank of America read, then a GoodRx read = THREE ad spans.)
+- Set "company" to each sponsor's own name.
+
+BOUNDARIES:
+- Include the WHOLE read: start at the ad's first lead-in sentence (often a question or a "let's take a break"-style pivot is content, but the first line that starts selling is the ad), and end at its final URL/price/disclaimer line. Do not clip the opening or the trailing URL.
+- Do NOT bleed into content: stop before the host resumes the story ("we're back…", "back to the show").
+- Scan the ENTIRE episode, including AFTER the sign-off/credits — trailing post-credits ad pods are common.
+- Catch EVERY occurrence: if the same plug airs twice, return both; if an ad sits in the gap between two other ad pods, return it too.
+
+CRITICAL — protect content:
+- Never return content. Interview/story/analysis is content even when it names brands.
+- Be very suspicious of any single ad span longer than ~5 minutes — real reads are seconds to ~3 minutes. A long span almost always means you swallowed content; only return it if it is wall-to-wall sponsor copy.
+
+OUTPUT RULES:
+- Refer to segments ONLY by their [id]. Never invent timestamps.
+- "company": the sponsor/product name ONLY if named in THIS transcript, else null. Never carry an advertiser over from another episode.
+- "confidence": high only with explicit ad/scaffolding cues; medium if likely; low if uncertain.
+- "reason": one short sentence citing the cue you found.`
 
 function renderTranscript(segments: Transcript['segments']): string {
   return segments.map((s) => `[${s.id}] ${s.text}`).join('\n')
@@ -81,7 +120,7 @@ function renderPreviousAds(previousAds: Ad[]): string {
 function renderGuidance(guidance?: string | null): string {
   const g = guidance?.trim()
   if (!g) return ''
-  return `\nShow-specific guidance from the user — follow this carefully, it describes how THIS show's ads/promos behave:\n${g}\n`
+  return `\nShow-specific guidance from the user — follow this carefully, it describes how THIS show's ads behave:\n${g}\n`
 }
 
 /** Tell the model which spans recur near-verbatim across episodes — these are
@@ -97,7 +136,7 @@ function renderRecurring(spans: RecurringSpan[], windowSegments: Transcript['seg
   const lines = inWindow
     .map((s) => `- segments [${s.startSegmentId}]–[${s.endSegmentId}]: "${s.text.slice(0, 160)}"`)
     .join('\n')
-  return `\nRecurring boilerplate: the following spans appear near-verbatim in previous episodes of this show, so they are almost certainly "fluff" (standard intro/sign-off/credits/housekeeping). Label them "fluff" UNLESS part of the span is a third-party ad or a promo — in that case label that part "ad"/"promo" and the surrounding boilerplate "fluff":\n${lines}\n`
+  return `\nRecurring boilerplate: the following spans appear near-verbatim in previous episodes of this show, so they are almost certainly "fluff" (standard intro/sign-off/credits/housekeeping). Label them "fluff" UNLESS part of the span is a sponsor read or promotional plug — in that case label that part "ad" and the surrounding boilerplate "fluff":\n${lines}\n`
 }
 
 function buildUserPrompt(
@@ -158,7 +197,7 @@ async function detectWindow(
     log.warn(`generateObject failed, trying repair fallback: ${(err as Error).message}`)
     const { text } = await generateText({
       model,
-      system: `${SYSTEM_PROMPT}\n\nRespond with ONLY a JSON object: {"segments":[{"startSegmentId":N,"endSegmentId":N,"label":"ad|promo|fluff","company":string|null,"reason":string,"confidence":"low|medium|high"}]}. No prose, no markdown.`,
+      system: `${SYSTEM_PROMPT}\n\nRespond with ONLY a JSON object: {"segments":[{"startSegmentId":N,"endSegmentId":N,"label":"ad|fluff","company":string|null,"reason":string,"confidence":"low|medium|high"}]}. No prose, no markdown.`,
       prompt,
     })
     const parsed = DetectionResultSchema.parse(extractJson(text))
@@ -235,22 +274,17 @@ export async function detectAds(
 // Recurring sponsor reads and cross-promos repeat across episodes too, so
 // recurrence can sweep them into "fluff" — and a weak model may not split them
 // back out. That would let a real ad survive on a show where only removeAds is
-// on. These cues reclassify an ad/promo-bearing "fluff" span back to ad/promo so
-// the existing per-label toggles still catch it. Pure scaffolding (billboards,
-// credits, sign-offs) has none of these cues and stays fluff.
+// on. These cues reclassify an ad-bearing "fluff" span back to "ad" so the
+// removeAds toggle still catches it. Pure scaffolding (billboards, credits,
+// sign-offs, "follow/rate us") has none of these commercial cues and stays fluff.
 const AD_CUES =
-  /\b(this message comes from|support for .{0,40}comes from|sponsored by|brought to you by|use (?:the )?(?:code|promo)|promo code)\b|[a-z0-9-]+\.(?:com|org|net|co)\/[a-z0-9]/i
-const PROMO_CUES =
-  /\b(wherever you get your podcasts|subscribe|follow .{0,40}podcast|patreon|sponsor[- ]free|without sponsor breaks|npr\+|plus\.npr\.org|listen (?:to|on|every|now|wherever))\b/i
+  /\b(this message comes from|support for .{0,40}comes from|sponsored by|brought to you by|use (?:the )?(?:code|promo)|promo code|wherever you get your podcasts|sponsor[- ]free|without sponsor breaks|npr\+|plus\.npr\.org)\b|[a-z0-9-]+\.(?:com|org|net|co|ai)\/[a-z0-9]/i
 
-/** Re-label a "fluff" span back to ad/promo when it clearly contains one (see
- * AD_CUES/PROMO_CUES). Non-fluff spans pass through unchanged. */
+/** Re-label a "fluff" span back to "ad" when it clearly contains a sponsor read
+ * or promotional plug (see AD_CUES). Non-fluff spans pass through unchanged. */
 export function reclassifyFluff(ad: DetectedAd): DetectedAd {
   if (ad.label !== 'fluff') return ad
-  const text = ad.adText ?? ''
-  if (AD_CUES.test(text)) return { ...ad, label: 'ad' }
-  if (PROMO_CUES.test(text)) return { ...ad, label: 'promo' }
-  return ad
+  return AD_CUES.test(ad.adText ?? '') ? { ...ad, label: 'ad' } : ad
 }
 
 /** Add recurring spans the LLM didn't touch as "fluff". A recurring span is
