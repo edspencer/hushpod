@@ -65,6 +65,19 @@ export interface Ad {
   updatedAt: string
 }
 
+export interface TranscriptSegment {
+  id: number
+  start: number
+  end: number
+  text: string
+}
+
+export interface Transcript {
+  language?: string
+  durationSec?: number
+  segments: TranscriptSegment[]
+}
+
 export interface AppSettings {
   whisperMode: 'local' | 'remote'
   whisperModel: string
@@ -194,6 +207,9 @@ export const api = {
 
   getEpisode: (id: number): Promise<EpisodeDetail> => request<EpisodeDetail>(`/api/episodes/${id}`),
 
+  getEpisodeTranscript: (id: number): Promise<Transcript> =>
+    request<Transcript>(`/api/episodes/${id}/transcript`),
+
   processEpisode: (id: number): Promise<ProcessResponse> =>
     request<ProcessResponse>(`/api/episodes/${id}/process`, {
       method: 'POST',
@@ -229,6 +245,7 @@ export const queryKeys = {
   showEpisodes: (showId: number) => ['shows', showId, 'episodes'] as const,
   showAds: (showId: number) => ['shows', showId, 'ads'] as const,
   episode: (id: number) => ['episodes', id] as const,
+  episodeTranscript: (id: number) => ['episodes', id, 'transcript'] as const,
   episodeAds: (episodeId: number) => ['episodes', episodeId, 'ads'] as const,
   adsStats: ['ads', 'stats'] as const,
   settings: ['settings'] as const,
@@ -264,6 +281,18 @@ export function useEpisode(id: number | undefined): UseQueryResult<EpisodeDetail
     queryKey: queryKeys.episode(id ?? -1),
     queryFn: () => api.getEpisode(id as number),
     enabled: id != null,
+  })
+}
+
+export function useEpisodeTranscript(
+  id: number | undefined,
+  enabled = true,
+): UseQueryResult<Transcript, Error> {
+  return useQuery({
+    queryKey: queryKeys.episodeTranscript(id ?? -1),
+    queryFn: () => api.getEpisodeTranscript(id as number),
+    enabled: id != null && enabled,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

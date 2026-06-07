@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Scissors } from 'lucide-react'
-import { Badge, Card, CardContent, CardHeader, CardTitle } from '@client/components/ui'
+import { ChevronDown, FileText, Scissors } from 'lucide-react'
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Spinner,
+  Switch,
+} from '@client/components/ui'
+import { useEpisodeTranscript } from '@client/lib/api'
 import type { Ad, AdLabel } from '@client/lib/api'
+import { TranscriptView } from '@client/components/TranscriptView'
 import { cn } from '@client/lib/cn'
 
 function fmtTime(total: number): string {
@@ -100,12 +110,27 @@ function AdCard({ ad, active }: { ad: Ad; active: boolean }) {
 export interface AdListProps {
   ads: Ad[]
   originalDuration: number | null
-  /** id of the segment currently under the player's playhead, if any */
+  episodeId: number
+  hasTranscript?: boolean
+  /** id of the ad segment currently under the player's playhead, if any */
   activeAdId?: number | null
+  /** playhead position on the original timeline (for transcript highlighting) */
+  currentTime?: number | null
   className?: string
 }
 
-export function AdList({ ads, originalDuration, activeAdId, className }: AdListProps) {
+export function AdList({
+  ads,
+  originalDuration,
+  episodeId,
+  hasTranscript,
+  activeAdId,
+  currentTime,
+  className,
+}: AdListProps) {
+  const [showTranscript, setShowTranscript] = useState(false)
+  const transcriptQuery = useEpisodeTranscript(episodeId, showTranscript)
+
   const removedSeconds = ads.reduce((sum, ad) => sum + Math.max(0, ad.endTime - ad.startTime), 0)
   const cleanDuration =
     originalDuration != null ? Math.max(0, originalDuration - removedSeconds) : null
@@ -117,10 +142,23 @@ export function AdList({ ads, originalDuration, activeAdId, className }: AdListP
           <Scissors className="h-4 w-4 text-brand-400" />
           Detected segments
         </CardTitle>
-        <span className="text-xs text-muted">
-          {ads.length} {ads.length === 1 ? 'segment' : 'segments'}, {fmtDuration(removedSeconds)}{' '}
-          removed
-        </span>
+        <div className="flex items-center gap-4">
+          {hasTranscript && (
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <FileText className="h-3.5 w-3.5" />
+              <span>Transcript</span>
+              <Switch
+                checked={showTranscript}
+                onCheckedChange={setShowTranscript}
+                aria-label="Show transcript"
+              />
+            </div>
+          )}
+          <span className="whitespace-nowrap text-xs text-muted">
+            {ads.length} {ads.length === 1 ? 'segment' : 'segments'}, {fmtDuration(removedSeconds)}{' '}
+            removed
+          </span>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {originalDuration != null && (
@@ -145,6 +183,19 @@ export function AdList({ ads, originalDuration, activeAdId, className }: AdListP
             </div>
           </div>
         )}
+
+        {showTranscript &&
+          (transcriptQuery.isLoading ? (
+            <div className="flex items-center gap-2 py-3 text-sm text-muted">
+              <Spinner className="h-4 w-4" /> Loading transcript…
+            </div>
+          ) : transcriptQuery.isError ? (
+            <p className="py-2 text-sm text-danger">
+              {transcriptQuery.error?.message ?? 'Could not load transcript.'}
+            </p>
+          ) : transcriptQuery.data ? (
+            <TranscriptView transcript={transcriptQuery.data} ads={ads} currentTime={currentTime} />
+          ) : null)}
 
         {ads.length === 0 ? (
           <p className="py-2 text-sm text-muted">No ads or promos detected yet.</p>

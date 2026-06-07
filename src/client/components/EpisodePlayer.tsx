@@ -38,6 +38,9 @@ export interface EpisodePlayerProps {
   /** Notified when the segment under the playhead changes (null when none, or
    * when playing the clean track where ads no longer exist). */
   onActiveAdChange?: (adId: number | null) => void
+  /** Playhead position (throttled to ~1/s) + which track is playing. Used to
+   * sync the transcript view. */
+  onProgress?: (timeSec: number, version: Version) => void
   className?: string
 }
 
@@ -48,10 +51,12 @@ export function EpisodePlayer({
   fallbackDuration,
   ads,
   onActiveAdChange,
+  onProgress,
   className,
 }: EpisodePlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const lastSaveRef = useRef(0)
+  const lastEmitRef = useRef(-1)
   const restoredRef = useRef<PlaybackState | null>(null)
 
   // pick the initial version from saved state, falling back to whatever exists
@@ -130,12 +135,26 @@ export function EpisodePlayer({
     }
   }, [speed, version])
 
+  // Emit the playhead to the parent at most once per second (cheap enough to
+  // drive transcript highlighting without re-rendering the page every frame).
+  const emitProgress = useCallback(
+    (t: number) => {
+      const sec = Math.floor(t)
+      if (onProgress && sec !== lastEmitRef.current) {
+        lastEmitRef.current = sec
+        onProgress(t, version)
+      }
+    },
+    [onProgress, version],
+  )
+
   const handleTimeUpdate = useCallback(() => {
     const audio = audioRef.current
     if (!audio) return
     setCurrent(audio.currentTime)
+    emitProgress(audio.currentTime)
     if (!audio.paused) persist()
-  }, [persist])
+  }, [persist, emitProgress])
 
   const handleEnded = useCallback(() => {
     setPlaying(false)
@@ -162,9 +181,11 @@ export function EpisodePlayer({
       const clamped = Math.max(0, Math.min(t, effectiveDuration || t))
       audio.currentTime = clamped
       setCurrent(clamped)
+      lastEmitRef.current = -1
+      emitProgress(clamped)
       persist(true)
     },
-    [effectiveDuration, persist],
+    [effectiveDuration, persist, emitProgress],
   )
 
   const skip = useCallback(

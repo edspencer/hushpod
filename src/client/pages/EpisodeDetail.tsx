@@ -47,6 +47,11 @@ export default function EpisodeDetail() {
 
   // Which detected segment the player's head is currently inside (live).
   const [activeAdId, setActiveAdId] = useState<number | null>(null)
+  // Playhead position + track, for live transcript highlighting (~1/s).
+  const [playhead, setPlayhead] = useState<{ time: number; version: 'clean' | 'original' }>({
+    time: 0,
+    version: 'clean',
+  })
 
   const inFlight = episode ? IN_FLIGHT.has(episode.status) : false
 
@@ -157,11 +162,19 @@ export default function EpisodeDetail() {
             fallbackDuration={episode.duration}
             ads={episode.ads}
             onActiveAdChange={setActiveAdId}
+            onProgress={(time, version) => setPlayhead({ time, version })}
           />
 
           <DownloadBar cleanUrl={episode.audioCleanUrl} originalUrl={episode.audioOriginalUrl} />
 
-          <AdList ads={episode.ads} originalDuration={episode.duration} activeAdId={activeAdId} />
+          <AdList
+            ads={episode.ads}
+            originalDuration={episode.duration}
+            episodeId={episode.id}
+            hasTranscript={episode.hasTranscript}
+            activeAdId={activeAdId}
+            currentTime={playhead.version === 'original' ? playhead.time : null}
+          />
         </>
       )}
     </div>

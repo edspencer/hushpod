@@ -4,6 +4,7 @@ import { db } from '../db/index.js'
 import { episodes, ads, shows } from '../db/schema.js'
 import { queue, reprocessEpisode } from '../services/processor.js'
 import { sanitizeGuid } from '../lib/config.js'
+import { TranscriptSchema } from '../../shared/schemas.js'
 
 export const episodesRoute = new Hono()
 
@@ -42,6 +43,23 @@ episodesRoute.get('/episodes/:id', (c) => {
     audioOriginalUrl: show ? `/audio/${show.slug}/${guid}/original.mp3` : null,
     ads: episodeAds,
   })
+})
+
+/** Full timestamped transcript: GET /api/episodes/:id/transcript */
+episodesRoute.get('/episodes/:id/transcript', (c) => {
+  const id = Number(c.req.param('id'))
+  const row = db
+    .select({ transcript: episodes.transcript })
+    .from(episodes)
+    .where(eq(episodes.id, id))
+    .get()
+  if (!row) return c.json({ error: 'not found' }, 404)
+  if (!row.transcript) return c.json({ error: 'no transcript yet' }, 404)
+  try {
+    return c.json(TranscriptSchema.parse(JSON.parse(row.transcript)))
+  } catch {
+    return c.json({ error: 'transcript could not be parsed' }, 500)
+  }
 })
 
 /** Start (or restart) the full pipeline for an episode. */
