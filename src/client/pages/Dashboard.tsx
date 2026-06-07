@@ -88,10 +88,10 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Recent activity — the persisted history behind the live queue. */}
+      {/* Recent activity — a short glance; the full feed lives on /stats. */}
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Activity</h2>
-        <ActivityFeed />
+        <ActivityFeed limit={8} viewAllHref="/stats#activity" />
       </section>
 
       <AddShowDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />

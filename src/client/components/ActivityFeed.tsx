@@ -64,11 +64,20 @@ const DOT: Record<Tone, string> = {
 
 export interface ActivityFeedProps {
   limit?: number
+  /** When set, show a "View all →" link (e.g. to the full feed on /stats). */
+  viewAllHref?: string
+  /** Tailwind max-height class for the scroll area (taller for the stats page). */
+  maxHeightClass?: string
   className?: string
 }
 
 /** Recent pipeline activity — the persisted companion to the live queue. */
-export function ActivityFeed({ limit = 40, className }: ActivityFeedProps) {
+export function ActivityFeed({
+  limit = 40,
+  viewAllHref,
+  maxHeightClass = 'max-h-96',
+  className,
+}: ActivityFeedProps) {
   const events = useEvents(limit, 5000)
   const rows = events.data ?? []
 
@@ -79,7 +88,14 @@ export function ActivityFeed({ limit = 40, className }: ActivityFeedProps) {
           <Activity className="h-4 w-4 text-muted" />
           Recent activity
         </CardTitle>
-        {events.isFetching && <Spinner className="h-3.5 w-3.5" />}
+        <div className="flex items-center gap-3">
+          {events.isFetching && <Spinner className="h-3.5 w-3.5" />}
+          {viewAllHref && (
+            <Link to={viewAllHref} className="text-xs font-medium text-brand-400 hover:underline">
+              View all →
+            </Link>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {events.isLoading ? (
@@ -90,7 +106,7 @@ export function ActivityFeed({ limit = 40, className }: ActivityFeedProps) {
         ) : rows.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-muted">No activity yet.</p>
         ) : (
-          <ul className="max-h-96 divide-y divide-border overflow-y-auto">
+          <ul className={cn('divide-y divide-border overflow-y-auto', maxHeightClass)}>
             {rows.map((e) => {
               const { label, detail, tone } = describe(e)
               return (

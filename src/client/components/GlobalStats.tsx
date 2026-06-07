@@ -50,16 +50,53 @@ function StatCard({
   )
 }
 
-export function GlobalStats() {
+/** The four headline metric cards. Self-fetching (react-query dedupes), so it
+ * can be dropped on both the dashboard and the stats page. */
+export function StatCards() {
   const shows = useShows()
   const adsStats = useAdsStats()
   const status = useStatus(4000)
-  const [queueOpen, setQueueOpen] = useState(false)
 
   const totalShows = shows.data?.length ?? 0
   const episodesDone = status.data?.episodes?.done ?? 0
   const totalAds = adsStats.data?.totalAds ?? 0
   const totalSeconds = adsStats.data?.totalSeconds ?? 0
+
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatCard
+        icon={<Podcast className="h-5 w-5" />}
+        label="Shows"
+        value={String(totalShows)}
+        loading={shows.isLoading}
+      />
+      <StatCard
+        icon={<ListMusic className="h-5 w-5" />}
+        label="Episodes processed"
+        value={String(episodesDone)}
+        loading={status.isLoading}
+      />
+      <StatCard
+        icon={<Scissors className="h-5 w-5" />}
+        label="Ads removed"
+        value={totalAds.toLocaleString()}
+        loading={adsStats.isLoading}
+      />
+      <StatCard
+        icon={<Clock className="h-5 w-5" />}
+        label="Ad time removed"
+        value={formatDuration(totalSeconds)}
+        loading={adsStats.isLoading}
+      />
+    </div>
+  )
+}
+
+/** Dashboard glance: live processing pill (toggles an inline queue) + metrics. */
+export function GlobalStats() {
+  const status = useStatus(4000)
+  const [queueOpen, setQueueOpen] = useState(false)
+
   const activeCount = status.data?.queue.active.length ?? 0
   const queuedCount = status.data?.queue.queued.length ?? 0
   const items = status.data?.queue.items ?? []
@@ -95,32 +132,7 @@ export function GlobalStats() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          icon={<Podcast className="h-5 w-5" />}
-          label="Shows"
-          value={String(totalShows)}
-          loading={shows.isLoading}
-        />
-        <StatCard
-          icon={<ListMusic className="h-5 w-5" />}
-          label="Episodes processed"
-          value={String(episodesDone)}
-          loading={status.isLoading}
-        />
-        <StatCard
-          icon={<Scissors className="h-5 w-5" />}
-          label="Ads removed"
-          value={totalAds.toLocaleString()}
-          loading={adsStats.isLoading}
-        />
-        <StatCard
-          icon={<Clock className="h-5 w-5" />}
-          label="Ad time removed"
-          value={formatDuration(totalSeconds)}
-          loading={adsStats.isLoading}
-        />
-      </div>
+      <StatCards />
     </div>
   )
 }

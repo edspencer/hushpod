@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, NavLink, Link } from 'react-router-dom'
-import { AudioLines, LayoutDashboard, Settings as SettingsIcon, Moon, Sun } from 'lucide-react'
+import {
+  AudioLines,
+  LayoutDashboard,
+  BarChart3,
+  Settings as SettingsIcon,
+  Moon,
+  Sun,
+} from 'lucide-react'
 import { cn } from '@client/lib/cn'
 import { Button } from '@client/components/ui/Button'
 import Dashboard from '@client/pages/Dashboard'
 import ShowDetail from '@client/pages/ShowDetail'
 import EpisodeDetail from '@client/pages/EpisodeDetail'
+import Stats from '@client/pages/Stats'
 import Settings from '@client/pages/Settings'
 
 const THEME_KEY = 'hushpod:theme'
@@ -78,6 +86,7 @@ export default function App() {
             </Link>
             <nav className="flex items-center gap-1">
               <NavItem to="/" label="Dashboard" icon={<LayoutDashboard className="h-4 w-4" />} />
+              <NavItem to="/stats" label="Stats" icon={<BarChart3 className="h-4 w-4" />} />
               <NavItem
                 to="/settings"
                 label="Settings"
@@ -99,6 +108,7 @@ export default function App() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/stats" element={<Stats />} />
           <Route path="/shows/:id" element={<ShowDetail />} />
           <Route path="/episodes/:id" element={<EpisodeDetail />} />
           <Route path="/settings" element={<Settings />} />
