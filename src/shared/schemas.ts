@@ -47,8 +47,19 @@ export const DetectedSegmentSchema = z.object({
     .nonnegative()
     .describe('id of the last transcript segment in this ad (inclusive)'),
   label: z.enum(AD_LABELS),
-  company: z.string().nullable().describe('Advertiser/company name if identifiable, else null'),
-  reason: z.string().describe('Brief explanation of why this span is an ad/promo/intro/outro'),
+  company: z
+    .string()
+    .nullable()
+    .optional()
+    .describe('Advertiser/company name ONLY if named in THIS transcript, else null'),
+  reason: z
+    .string()
+    .optional()
+    .describe('Brief explanation of why this span is an ad/promo/intro/outro'),
+  confidence: z
+    .enum(['low', 'medium', 'high'])
+    .optional()
+    .describe('high only when there is explicit ad language; medium if likely; low if uncertain'),
 })
 export type DetectedSegment = z.infer<typeof DetectedSegmentSchema>
 
