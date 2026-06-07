@@ -1,27 +1,21 @@
-import type { ReactNode } from 'react';
-import {
-  Podcast,
-  ListMusic,
-  Scissors,
-  Clock,
-  Radio,
-} from 'lucide-react';
-import { Card } from '@client/components/ui';
-import { useShows, useAdsStats, useStatus } from '@client/lib/api';
+import type { ReactNode } from 'react'
+import { Podcast, ListMusic, Scissors, Clock, Radio } from 'lucide-react'
+import { Card } from '@client/components/ui'
+import { useShows, useAdsStats, useStatus } from '@client/lib/api'
 
 /** Format a duration in seconds as a compact human string, e.g. "2h 14m". */
 function formatDuration(totalSeconds: number): string {
-  if (!totalSeconds || totalSeconds < 0) return '0m';
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (!totalSeconds || totalSeconds < 0) return '0m'
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
   if (hours > 0) {
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
   }
   if (minutes > 0) {
-    const seconds = Math.floor(totalSeconds % 60);
-    return seconds > 0 && minutes < 5 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+    const seconds = Math.floor(totalSeconds % 60)
+    return seconds > 0 && minutes < 5 ? `${minutes}m ${seconds}s` : `${minutes}m`
   }
-  return `${Math.floor(totalSeconds)}s`;
+  return `${Math.floor(totalSeconds)}s`
 }
 
 function StatCard({
@@ -30,10 +24,10 @@ function StatCard({
   value,
   loading,
 }: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  loading: boolean;
+  icon: ReactNode
+  label: string
+  value: string
+  loading: boolean
 }) {
   return (
     <Card className="p-4 sm:p-5">
@@ -46,26 +40,24 @@ function StatCard({
           {loading ? (
             <div className="mt-1 h-6 w-16 animate-pulse rounded bg-surface-2" />
           ) : (
-            <p className="text-xl font-semibold leading-tight text-fg">
-              {value}
-            </p>
+            <p className="text-xl font-semibold leading-tight text-fg">{value}</p>
           )}
         </div>
       </div>
     </Card>
-  );
+  )
 }
 
 export function GlobalStats() {
-  const shows = useShows();
-  const adsStats = useAdsStats();
-  const status = useStatus(4000);
+  const shows = useShows()
+  const adsStats = useAdsStats()
+  const status = useStatus(4000)
 
-  const totalShows = shows.data?.length ?? 0;
-  const episodesDone = status.data?.episodes?.done ?? 0;
-  const totalAds = adsStats.data?.totalAds ?? 0;
-  const totalSeconds = adsStats.data?.totalSeconds ?? 0;
-  const activeCount = status.data?.queue.active.length ?? 0;
+  const totalShows = shows.data?.length ?? 0
+  const episodesDone = status.data?.episodes?.done ?? 0
+  const totalAds = adsStats.data?.totalAds ?? 0
+  const totalSeconds = adsStats.data?.totalSeconds ?? 0
+  const activeCount = status.data?.queue.active.length ?? 0
 
   return (
     <div className="space-y-3">
@@ -107,5 +99,5 @@ export function GlobalStats() {
         />
       </div>
     </div>
-  );
+  )
 }

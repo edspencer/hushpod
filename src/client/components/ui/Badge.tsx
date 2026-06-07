@@ -1,6 +1,6 @@
-import { forwardRef } from 'react';
-import type { HTMLAttributes } from 'react';
-import { cn } from '@client/lib/cn';
+import { forwardRef } from 'react'
+import type { HTMLAttributes } from 'react'
+import { cn } from '@client/lib/cn'
 
 export type BadgeVariant =
   | 'default'
@@ -13,7 +13,7 @@ export type BadgeVariant =
   | 'ad'
   | 'promo'
   | 'intro'
-  | 'outro';
+  | 'outro'
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: 'border-transparent bg-brand-600 text-white',
@@ -27,10 +27,10 @@ const variantClasses: Record<BadgeVariant, string> = {
   promo: 'border-transparent bg-warning/15 text-warning',
   intro: 'border-transparent bg-info/15 text-info',
   outro: 'border-transparent bg-brand-500/15 text-brand-300',
-};
+}
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: BadgeVariant;
+  variant?: BadgeVariant
 }
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
@@ -45,5 +45,5 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
       {...props}
     />
   ),
-);
-Badge.displayName = 'Badge';
+)
+Badge.displayName = 'Badge'

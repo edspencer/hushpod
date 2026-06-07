@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Loader2, Play, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Play, RotateCcw } from 'lucide-react'
 import {
   Button,
   Card,
@@ -6,10 +6,10 @@ import {
   CardHeader,
   CardTitle,
   StatusBadge,
-} from '@client/components/ui';
-import { useProcessEpisode, useReprocessEpisode } from '@client/lib/api';
-import type { EpisodeStatus } from '@client/lib/api';
-import { cn } from '@client/lib/cn';
+} from '@client/components/ui'
+import { useProcessEpisode, useReprocessEpisode } from '@client/lib/api'
+import type { EpisodeStatus } from '@client/lib/api'
+import { cn } from '@client/lib/cn'
 
 const STEPS: { key: EpisodeStatus; label: string }[] = [
   { key: 'pending', label: 'Pending' },
@@ -18,11 +18,11 @@ const STEPS: { key: EpisodeStatus; label: string }[] = [
   { key: 'detecting', label: 'Detect' },
   { key: 'cutting', label: 'Cut' },
   { key: 'done', label: 'Done' },
-];
+]
 
 function stepIndex(status: EpisodeStatus): number {
-  const i = STEPS.findIndex((s) => s.key === status);
-  return i === -1 ? 0 : i;
+  const i = STEPS.findIndex((s) => s.key === status)
+  return i === -1 ? 0 : i
 }
 
 const IN_FLIGHT: ReadonlySet<EpisodeStatus> = new Set([
@@ -31,14 +31,14 @@ const IN_FLIGHT: ReadonlySet<EpisodeStatus> = new Set([
   'transcribing',
   'detecting',
   'cutting',
-]);
+])
 
 export interface ProcessingStatusProps {
-  episodeId: number;
-  status: EpisodeStatus;
-  errorMessage: string | null;
-  retryCount: number;
-  className?: string;
+  episodeId: number
+  status: EpisodeStatus
+  errorMessage: string | null
+  retryCount: number
+  className?: string
 }
 
 export function ProcessingStatus({
@@ -48,14 +48,14 @@ export function ProcessingStatus({
   retryCount,
   className,
 }: ProcessingStatusProps) {
-  const process = useProcessEpisode();
-  const reprocess = useReprocessEpisode();
+  const process = useProcessEpisode()
+  const reprocess = useReprocessEpisode()
 
-  const isError = status === 'error';
-  const isDone = status === 'done';
-  const inFlight = IN_FLIGHT.has(status);
-  const current = stepIndex(status);
-  const busy = process.isPending || reprocess.isPending;
+  const isError = status === 'error'
+  const isDone = status === 'done'
+  const inFlight = IN_FLIGHT.has(status)
+  const current = stepIndex(status)
+  const busy = process.isPending || reprocess.isPending
 
   return (
     <Card className={className}>
@@ -66,11 +66,7 @@ export function ProcessingStatus({
         </CardTitle>
         <div className="flex items-center gap-2">
           {!isDone && !isError && (
-            <Button
-              size="sm"
-              onClick={() => process.mutate(episodeId)}
-              disabled={busy || inFlight}
-            >
+            <Button size="sm" onClick={() => process.mutate(episodeId)} disabled={busy || inFlight}>
               {busy && process.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
@@ -103,11 +99,7 @@ export function ProcessingStatus({
               <AlertTriangle className="h-4 w-4" />
               Processing failed
             </div>
-            {errorMessage && (
-              <p className="mt-1 break-words text-sm text-fg/90">
-                {errorMessage}
-              </p>
-            )}
+            {errorMessage && <p className="mt-1 break-words text-sm text-fg/90">{errorMessage}</p>}
             {retryCount > 0 && (
               <p className="mt-1 text-xs text-muted">
                 {retryCount} {retryCount === 1 ? 'retry' : 'retries'} attempted
@@ -117,14 +109,11 @@ export function ProcessingStatus({
         ) : (
           <ol className="flex items-center">
             {STEPS.map((step, i) => {
-              const complete = i < current || isDone;
-              const active = i === current && inFlight;
-              const last = i === STEPS.length - 1;
+              const complete = i < current || isDone
+              const active = i === current && inFlight
+              const last = i === STEPS.length - 1
               return (
-                <li
-                  key={step.key}
-                  className={cn('flex items-center', !last && 'flex-1')}
-                >
+                <li key={step.key} className={cn('flex items-center', !last && 'flex-1')}>
                   <div className="flex flex-col items-center gap-1.5">
                     <div
                       className={cn(
@@ -162,16 +151,14 @@ export function ProcessingStatus({
                     />
                   )}
                 </li>
-              );
+              )
             })}
           </ol>
         )}
 
         {(process.isError || reprocess.isError) && (
           <p className="text-xs text-danger">
-            {process.error?.message ??
-              reprocess.error?.message ??
-              'Action failed.'}
+            {process.error?.message ?? reprocess.error?.message ?? 'Action failed.'}
           </p>
         )}
         {inFlight && (
@@ -181,5 +168,5 @@ export function ProcessingStatus({
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

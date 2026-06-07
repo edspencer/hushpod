@@ -45,7 +45,11 @@ export interface DownloadResult {
  * Follows CDN redirect chains, sends a browser-ish UA, enforces a hard byte
  * cap, and derives the extension from Content-Type (falling back to the URL).
  */
-export async function downloadEpisode(sourceUrl: string, slug: string, guid: string): Promise<DownloadResult> {
+export async function downloadEpisode(
+  sourceUrl: string,
+  slug: string,
+  guid: string,
+): Promise<DownloadResult> {
   const dir = episodeDir(slug, guid)
   await mkdir(dir, { recursive: true })
 

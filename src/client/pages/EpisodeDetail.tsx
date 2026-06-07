@@ -1,26 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import {
-  AlertCircle,
-  Calendar,
-  ChevronRight,
-  Clock,
-  Download,
-} from 'lucide-react';
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Spinner,
-} from '@client/components/ui';
-import { useEpisode } from '@client/lib/api';
-import type { EpisodeStatus } from '@client/lib/api';
-import { cn } from '@client/lib/cn';
-import { EpisodePlayer } from '@client/components/EpisodePlayer';
-import { ProcessingStatus } from '@client/components/ProcessingStatus';
-import { AdList } from '@client/components/AdList';
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { AlertCircle, Calendar, ChevronRight, Clock, Download } from 'lucide-react'
+import { Button, Card, CardContent, CardHeader, CardTitle, Spinner } from '@client/components/ui'
+import { useEpisode } from '@client/lib/api'
+import type { EpisodeStatus } from '@client/lib/api'
+import { cn } from '@client/lib/cn'
+import { EpisodePlayer } from '@client/components/EpisodePlayer'
+import { ProcessingStatus } from '@client/components/ProcessingStatus'
+import { AdList } from '@client/components/AdList'
 
 const IN_FLIGHT: ReadonlySet<EpisodeStatus> = new Set([
   'pending',
@@ -28,58 +15,52 @@ const IN_FLIGHT: ReadonlySet<EpisodeStatus> = new Set([
   'transcribing',
   'detecting',
   'cutting',
-]);
+])
 
 function fmtDuration(seconds: number | null): string {
-  if (seconds == null || !Number.isFinite(seconds)) return '—';
-  const s = Math.max(0, Math.round(seconds));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  const rem = s % 60;
-  return m > 0 ? `${m}m ${rem}s` : `${rem}s`;
+  if (seconds == null || !Number.isFinite(seconds)) return '—'
+  const s = Math.max(0, Math.round(seconds))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  if (h > 0) return `${h}h ${m}m`
+  const rem = s % 60
+  return m > 0 ? `${m}m ${rem}s` : `${rem}s`
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return 'Unknown date';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 'Unknown date';
+  if (!iso) return 'Unknown date'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return 'Unknown date'
   return d.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  });
+  })
 }
 
 export default function EpisodeDetail() {
-  const { id } = useParams<{ id: string }>();
-  const numericId =
-    id != null && /^\d+$/.test(id) ? Number.parseInt(id, 10) : undefined;
+  const { id } = useParams<{ id: string }>()
+  const numericId = id != null && /^\d+$/.test(id) ? Number.parseInt(id, 10) : undefined
 
-  const query = useEpisode(numericId);
-  const { data: episode, isLoading, isError, error, refetch } = query;
+  const query = useEpisode(numericId)
+  const { data: episode, isLoading, isError, error, refetch } = query
 
   // Which detected segment the player's head is currently inside (live).
-  const [activeAdId, setActiveAdId] = useState<number | null>(null);
+  const [activeAdId, setActiveAdId] = useState<number | null>(null)
 
-  const inFlight = episode ? IN_FLIGHT.has(episode.status) : false;
+  const inFlight = episode ? IN_FLIGHT.has(episode.status) : false
 
   // poll while processing is in-flight
   useEffect(() => {
-    if (!inFlight) return;
+    if (!inFlight) return
     const t = window.setInterval(() => {
-      void refetch();
-    }, 3000);
-    return () => window.clearInterval(t);
-  }, [inFlight, refetch]);
+      void refetch()
+    }, 3000)
+    return () => window.clearInterval(t)
+  }, [inFlight, refetch])
 
   if (numericId === undefined) {
-    return (
-      <EmptyState
-        title="Invalid episode"
-        message="That episode id doesn't look right."
-      />
-    );
+    return <EmptyState title="Invalid episode" message="That episode id doesn't look right." />
   }
 
   if (isLoading) {
@@ -88,7 +69,7 @@ export default function EpisodeDetail() {
         <Spinner className="h-5 w-5" />
         <span className="text-sm">Loading episode…</span>
       </div>
-    );
+    )
   }
 
   if (isError || !episode) {
@@ -102,11 +83,10 @@ export default function EpisodeDetail() {
           </Button>
         }
       />
-    );
+    )
   }
 
-  const notProcessed =
-    episode.status === 'pending' && episode.ads.length === 0;
+  const notProcessed = episode.status === 'pending' && episode.ads.length === 0
 
   return (
     <div className="space-y-6">
@@ -117,17 +97,11 @@ export default function EpisodeDetail() {
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
         {episode.showTitle ? (
-          <Link
-            to={`/shows/${episode.showId}`}
-            className="text-brand-400 hover:underline"
-          >
+          <Link to={`/shows/${episode.showId}`} className="text-brand-400 hover:underline">
             {episode.showTitle}
           </Link>
         ) : (
-          <Link
-            to={`/shows/${episode.showId}`}
-            className="hover:text-fg"
-          >
+          <Link to={`/shows/${episode.showId}`} className="hover:text-fg">
             Show #{episode.showId}
           </Link>
         )}
@@ -137,9 +111,7 @@ export default function EpisodeDetail() {
 
       {/* header */}
       <header className="space-y-3">
-        <h1 className="text-2xl font-semibold leading-tight text-fg">
-          {episode.title}
-        </h1>
+        <h1 className="text-2xl font-semibold leading-tight text-fg">{episode.title}</h1>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
           <span className="inline-flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
@@ -151,9 +123,7 @@ export default function EpisodeDetail() {
           </span>
         </div>
         {episode.description && (
-          <p className="max-w-3xl text-sm leading-relaxed text-fg/80">
-            {episode.description}
-          </p>
+          <p className="max-w-3xl text-sm leading-relaxed text-fg/80">{episode.description}</p>
         )}
       </header>
 
@@ -172,9 +142,9 @@ export default function EpisodeDetail() {
               This episode hasn&apos;t been processed yet
             </p>
             <p className="max-w-md text-sm text-muted">
-              Click <span className="font-medium text-fg">Process</span> above
-              to download, transcribe, and remove ads. The player and detected
-              segments will appear once processing completes.
+              Click <span className="font-medium text-fg">Process</span> above to download,
+              transcribe, and remove ads. The player and detected segments will appear once
+              processing completes.
             </p>
           </CardContent>
         </Card>
@@ -189,44 +159,28 @@ export default function EpisodeDetail() {
             onActiveAdChange={setActiveAdId}
           />
 
-          <DownloadBar
-            cleanUrl={episode.audioCleanUrl}
-            originalUrl={episode.audioOriginalUrl}
-          />
+          <DownloadBar cleanUrl={episode.audioCleanUrl} originalUrl={episode.audioOriginalUrl} />
 
-          <AdList
-            ads={episode.ads}
-            originalDuration={episode.duration}
-            activeAdId={activeAdId}
-          />
+          <AdList ads={episode.ads} originalDuration={episode.duration} activeAdId={activeAdId} />
         </>
       )}
     </div>
-  );
+  )
 }
 
 function DownloadBar({
   cleanUrl,
   originalUrl,
 }: {
-  cleanUrl: string | null;
-  originalUrl: string | null;
+  cleanUrl: string | null
+  originalUrl: string | null
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <DownloadLink
-        href={cleanUrl}
-        label="Download clean"
-        filename="clean.mp3"
-        primary
-      />
-      <DownloadLink
-        href={originalUrl}
-        label="Download original"
-        filename="original.mp3"
-      />
+      <DownloadLink href={cleanUrl} label="Download clean" filename="clean.mp3" primary />
+      <DownloadLink href={originalUrl} label="Download original" filename="original.mp3" />
     </div>
-  );
+  )
 }
 
 function DownloadLink({
@@ -235,13 +189,13 @@ function DownloadLink({
   filename,
   primary = false,
 }: {
-  href: string | null;
-  label: string;
-  filename: string;
-  primary?: boolean;
+  href: string | null
+  label: string
+  filename: string
+  primary?: boolean
 }) {
   const base =
-    'inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors';
+    'inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors'
   if (!href) {
     return (
       <span
@@ -254,7 +208,7 @@ function DownloadLink({
         <Download className="h-4 w-4" />
         {label}
       </span>
-    );
+    )
   }
   return (
     <a
@@ -270,7 +224,7 @@ function DownloadLink({
       <Download className="h-4 w-4" />
       {label}
     </a>
-  );
+  )
 }
 
 function EmptyState({
@@ -278,9 +232,9 @@ function EmptyState({
   message,
   action,
 }: {
-  title: string;
-  message: string;
-  action?: React.ReactNode;
+  title: string
+  message: string
+  action?: React.ReactNode
 }) {
   return (
     <Card className="mx-auto max-w-md">
@@ -293,15 +247,12 @@ function EmptyState({
       <CardContent className="space-y-3">
         <p className="text-sm text-muted">{message}</p>
         <div className="flex items-center gap-2">
-          <Link
-            to="/"
-            className="text-sm font-medium text-brand-400 hover:underline"
-          >
+          <Link to="/" className="text-sm font-medium text-brand-400 hover:underline">
             Back to dashboard
           </Link>
           {action}
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

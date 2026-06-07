@@ -8,14 +8,24 @@ export const adsRoute = new Hono()
 /** GET /api/episodes/:episodeId/ads */
 adsRoute.get('/episodes/:episodeId/ads', (c) => {
   const episodeId = Number(c.req.param('episodeId'))
-  const rows = db.select().from(ads).where(eq(ads.episodeId, episodeId)).orderBy(ads.startTime).all()
+  const rows = db
+    .select()
+    .from(ads)
+    .where(eq(ads.episodeId, episodeId))
+    .orderBy(ads.startTime)
+    .all()
   return c.json(rows)
 })
 
 /** GET /api/shows/:showId/ads */
 adsRoute.get('/shows/:showId/ads', (c) => {
   const showId = Number(c.req.param('showId'))
-  const rows = db.select().from(ads).where(eq(ads.showId, showId)).orderBy(desc(ads.createdAt)).all()
+  const rows = db
+    .select()
+    .from(ads)
+    .where(eq(ads.showId, showId))
+    .orderBy(desc(ads.createdAt))
+    .all()
   return c.json(rows)
 })
 

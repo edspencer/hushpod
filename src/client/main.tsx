@@ -1,10 +1,10 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import App from '@client/App';
-import { cleanupStale } from '@client/lib/playback';
-import './index.css';
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import App from '@client/App'
+import { cleanupStale } from '@client/lib/playback'
+import './index.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,13 +14,13 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
-});
+})
 
 // Best-effort cleanup of stale playback positions on startup.
-cleanupStale();
+cleanupStale()
 
-const rootEl = document.getElementById('root');
-if (!rootEl) throw new Error('Root element #root not found');
+const rootEl = document.getElementById('root')
+if (!rootEl) throw new Error('Root element #root not found')
 
 createRoot(rootEl).render(
   <StrictMode>
@@ -30,4 +30,4 @@ createRoot(rootEl).render(
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
-);
+)

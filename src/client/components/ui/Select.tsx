@@ -1,9 +1,9 @@
-import { forwardRef } from 'react';
-import type { SelectHTMLAttributes } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { cn } from '@client/lib/cn';
+import { forwardRef } from 'react'
+import type { SelectHTMLAttributes } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { cn } from '@client/lib/cn'
 
-export type SelectProps = SelectHTMLAttributes<HTMLSelectElement>;
+export type SelectProps = SelectHTMLAttributes<HTMLSelectElement>
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, children, ...props }, ref) => (
@@ -26,5 +26,5 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       />
     </div>
   ),
-);
-Select.displayName = 'Select';
+)
+Select.displayName = 'Select'

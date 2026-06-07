@@ -24,7 +24,11 @@ episodesRoute.get('/episodes/:id', (c) => {
   const id = Number(c.req.param('id'))
   const episode = db.select().from(episodes).where(eq(episodes.id, id)).get()
   if (!episode) return c.json({ error: 'not found' }, 404)
-  const show = db.select({ slug: shows.slug, title: shows.title }).from(shows).where(eq(shows.id, episode.showId)).get()
+  const show = db
+    .select({ slug: shows.slug, title: shows.title })
+    .from(shows)
+    .where(eq(shows.id, episode.showId))
+    .get()
   const episodeAds = db.select().from(ads).where(eq(ads.episodeId, id)).orderBy(ads.startTime).all()
   // Omit the (large) transcript from the detail payload by default.
   const { transcript, ...rest } = episode

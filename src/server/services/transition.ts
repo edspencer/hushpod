@@ -94,7 +94,9 @@ export async function extendForTransitions(
         if (spike) {
           const spikeAbs = beforeStart + spike.start
           if (spikeAbs < start) {
-            log.info(`extending ad start ${start.toFixed(1)}s -> ${spikeAbs.toFixed(1)}s (pre-chime)`)
+            log.info(
+              `extending ad start ${start.toFixed(1)}s -> ${spikeAbs.toFixed(1)}s (pre-chime)`,
+            )
             start = spikeAbs
           }
         }
@@ -107,13 +109,17 @@ export async function extendForTransitions(
         if (spike) {
           const spikeAbsEnd = end + spike.end
           if (spikeAbsEnd > end) {
-            log.info(`extending ad end ${end.toFixed(1)}s -> ${spikeAbsEnd.toFixed(1)}s (post-chime)`)
+            log.info(
+              `extending ad end ${end.toFixed(1)}s -> ${spikeAbsEnd.toFixed(1)}s (post-chime)`,
+            )
             end = Math.min(duration, spikeAbsEnd)
           }
         }
       }
     } catch (err) {
-      log.warn(`transition scan failed for [${start}-${end}], keeping original: ${(err as Error).message}`)
+      log.warn(
+        `transition scan failed for [${start}-${end}], keeping original: ${(err as Error).message}`,
+      )
     }
     adjusted.push({ start, end })
   }

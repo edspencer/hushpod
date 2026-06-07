@@ -1,46 +1,32 @@
-import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  RefreshCw,
-  Radio,
-  Trash2,
-} from 'lucide-react';
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  Spinner,
-} from '@client/components/ui';
-import { useCheckShow, useDeleteShow, useShow, useShowAds } from '@client/lib/api';
-import { AdTable } from '@client/components/AdTable';
-import { CopyField } from '@client/components/CopyField';
-import { EpisodeList } from '@client/components/EpisodeList';
-import { ShowSettingsPanel } from '@client/components/ShowSettingsPanel';
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { AlertCircle, ArrowLeft, Check, RefreshCw, Radio, Trash2 } from 'lucide-react'
+import { Badge, Button, Card, CardContent, Dialog, Spinner } from '@client/components/ui'
+import { useCheckShow, useDeleteShow, useShow, useShowAds } from '@client/lib/api'
+import { AdTable } from '@client/components/AdTable'
+import { CopyField } from '@client/components/CopyField'
+import { EpisodeList } from '@client/components/EpisodeList'
+import { ShowSettingsPanel } from '@client/components/ShowSettingsPanel'
 
 function parseId(raw: string | undefined): number | undefined {
-  if (!raw) return undefined;
-  const n = Number(raw);
-  return Number.isInteger(n) && n > 0 ? n : undefined;
+  if (!raw) return undefined
+  const n = Number(raw)
+  return Number.isInteger(n) && n > 0 ? n : undefined
 }
 
 export default function ShowDetail() {
-  const { id: rawId } = useParams<{ id: string }>();
-  const id = parseId(rawId);
-  const navigate = useNavigate();
+  const { id: rawId } = useParams<{ id: string }>()
+  const id = parseId(rawId)
+  const navigate = useNavigate()
 
-  const showQuery = useShow(id);
-  const adsQuery = useShowAds(id);
-  const checkShow = useCheckShow();
-  const deleteShow = useDeleteShow();
+  const showQuery = useShow(id)
+  const adsQuery = useShowAds(id)
+  const checkShow = useCheckShow()
+  const deleteShow = useDeleteShow()
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteFiles, setDeleteFiles] = useState(false);
-  const [checkResult, setCheckResult] = useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteFiles, setDeleteFiles] = useState(false)
+  const [checkResult, setCheckResult] = useState<number | null>(null)
 
   if (id == null) {
     return (
@@ -48,7 +34,7 @@ export default function ShowDetail() {
         message="That show id is not valid."
         detail={`“${rawId ?? ''}” is not a recognized show.`}
       />
-    );
+    )
   }
 
   if (showQuery.isPending) {
@@ -57,7 +43,7 @@ export default function ShowDetail() {
         <Spinner className="h-5 w-5" />
         <span className="text-sm">Loading show…</span>
       </div>
-    );
+    )
   }
 
   if (showQuery.isError) {
@@ -67,31 +53,31 @@ export default function ShowDetail() {
         detail={showQuery.error.message}
         onRetry={() => void showQuery.refetch()}
       />
-    );
+    )
   }
 
-  const show = showQuery.data;
-  const feedUrl = `${window.location.origin}/feed/${show.slug}`;
-  const ads = adsQuery.data ?? [];
+  const show = showQuery.data
+  const feedUrl = `${window.location.origin}/feed/${show.slug}`
+  const ads = adsQuery.data ?? []
 
   const handleCheck = () => {
-    setCheckResult(null);
+    setCheckResult(null)
     checkShow.mutate(id, {
       onSuccess: (res) => setCheckResult(res.discovered),
-    });
-  };
+    })
+  }
 
   const handleDelete = () => {
     deleteShow.mutate(
       { id, deleteFiles },
       {
         onSuccess: () => {
-          setConfirmOpen(false);
-          navigate('/');
+          setConfirmOpen(false)
+          navigate('/')
         },
       },
-    );
-  };
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -107,12 +93,7 @@ export default function ShowDetail() {
       <header className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <div className="h-28 w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2">
           {show.imageUrl ? (
-            <img
-              src={show.imageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
+            <img src={show.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted">
               <Radio className="h-8 w-8" />
@@ -122,9 +103,7 @@ export default function ShowDetail() {
 
         <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {show.title}
-            </h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{show.title}</h1>
             {show.isActive ? (
               <Badge variant="success">Active</Badge>
             ) : (
@@ -132,13 +111,10 @@ export default function ShowDetail() {
             )}
           </div>
           {show.description && (
-            <p className="line-clamp-3 max-w-2xl text-sm text-muted">
-              {show.description}
-            </p>
+            <p className="line-clamp-3 max-w-2xl text-sm text-muted">{show.description}</p>
           )}
           <p className="text-xs text-muted">
-            {show.episodeCount}{' '}
-            {show.episodeCount === 1 ? 'episode' : 'episodes'}
+            {show.episodeCount} {show.episodeCount === 1 ? 'episode' : 'episodes'}
           </p>
         </div>
       </header>
@@ -155,11 +131,7 @@ export default function ShowDetail() {
 
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          variant="secondary"
-          onClick={handleCheck}
-          disabled={checkShow.isPending}
-        >
+        <Button variant="secondary" onClick={handleCheck} disabled={checkShow.isPending}>
           {checkShow.isPending ? (
             <Spinner className="h-4 w-4" />
           ) : (
@@ -173,9 +145,7 @@ export default function ShowDetail() {
             <Check className="h-4 w-4" />
             {checkResult === 0
               ? 'No new episodes'
-              : `Found ${checkResult} new ${
-                  checkResult === 1 ? 'episode' : 'episodes'
-                }`}
+              : `Found ${checkResult} new ${checkResult === 1 ? 'episode' : 'episodes'}`}
           </span>
         )}
         {checkShow.isError && (
@@ -186,10 +156,7 @@ export default function ShowDetail() {
         )}
 
         <div className="ml-auto">
-          <Button
-            variant="destructive"
-            onClick={() => setConfirmOpen(true)}
-          >
+          <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             <Trash2 className="h-4 w-4" />
             Unsubscribe
           </Button>
@@ -216,7 +183,7 @@ export default function ShowDetail() {
       <Dialog
         open={confirmOpen}
         onClose={() => {
-          if (!deleteShow.isPending) setConfirmOpen(false);
+          if (!deleteShow.isPending) setConfirmOpen(false)
         }}
         title="Unsubscribe from show?"
         description={`This removes “${show.title}” and its episodes from HushPod.`}
@@ -229,11 +196,7 @@ export default function ShowDetail() {
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteShow.isPending}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteShow.isPending}>
               {deleteShow.isPending && <Spinner className="h-4 w-4" />}
               Unsubscribe
             </Button>
@@ -248,23 +211,18 @@ export default function ShowDetail() {
             className="mt-0.5 h-4 w-4 accent-brand-600"
           />
           <span className="text-sm">
-            <span className="font-medium text-fg">
-              Also delete downloaded files
-            </span>
+            <span className="font-medium text-fg">Also delete downloaded files</span>
             <span className="mt-0.5 block text-xs text-muted">
-              Permanently remove processed audio from disk. This cannot be
-              undone.
+              Permanently remove processed audio from disk. This cannot be undone.
             </span>
           </span>
         </label>
         {deleteShow.isError && (
-          <p className="mt-3 text-xs text-danger">
-            {deleteShow.error.message}
-          </p>
+          <p className="mt-3 text-xs text-danger">{deleteShow.error.message}</p>
         )}
       </Dialog>
     </div>
-  );
+  )
 }
 
 function ErrorState({
@@ -272,9 +230,9 @@ function ErrorState({
   detail,
   onRetry,
 }: {
-  message: string;
-  detail?: string;
-  onRetry?: () => void;
+  message: string
+  detail?: string
+  onRetry?: () => void
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
@@ -288,13 +246,10 @@ function ErrorState({
             Retry
           </Button>
         )}
-        <Link
-          to="/"
-          className="text-sm font-medium text-brand-400 hover:underline"
-        >
+        <Link to="/" className="text-sm font-medium text-brand-400 hover:underline">
           Back to dashboard
         </Link>
       </div>
     </div>
-  );
+  )
 }

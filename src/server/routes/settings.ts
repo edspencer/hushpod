@@ -22,5 +22,9 @@ settingsRoute.patch('/', zValidator('json', SettingsUpdateSchema), (c) => {
   if (patch.llmApiKey === '••••••') delete patch.llmApiKey
   if (patch.whisperApiKey === '••••••') delete patch.whisperApiKey
   const updated = updateSettings(patch)
-  return c.json({ ...updated, llmApiKey: updated.llmApiKey ? '••••••' : '', whisperApiKey: updated.whisperApiKey ? '••••••' : '' })
+  return c.json({
+    ...updated,
+    llmApiKey: updated.llmApiKey ? '••••••' : '',
+    whisperApiKey: updated.whisperApiKey ? '••••••' : '',
+  })
 })

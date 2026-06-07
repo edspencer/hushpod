@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -8,12 +8,12 @@ import {
   Label,
   Spinner,
   Switch,
-} from '@client/components/ui';
-import { useUpdateShow } from '@client/lib/api';
-import type { Show } from '@client/lib/api';
+} from '@client/components/ui'
+import { useUpdateShow } from '@client/lib/api'
+import type { Show } from '@client/lib/api'
 
 export interface ShowSettingsPanelProps {
-  show: Show;
+  show: Show
 }
 
 function Row({
@@ -22,10 +22,10 @@ function Row({
   control,
   htmlFor,
 }: {
-  title: string;
-  description: string;
-  control: React.ReactNode;
-  htmlFor?: string;
+  title: string
+  description: string
+  control: React.ReactNode
+  htmlFor?: string
 }) {
   return (
     <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
@@ -37,33 +37,33 @@ function Row({
       </div>
       <div className="shrink-0 pt-0.5">{control}</div>
     </div>
-  );
+  )
 }
 
 export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
-  const update = useUpdateShow();
-  const [limit, setLimit] = useState(String(show.episodeLimit));
+  const update = useUpdateShow()
+  const [limit, setLimit] = useState(String(show.episodeLimit))
 
   // Keep local input in sync if the show changes from elsewhere.
   useEffect(() => {
-    setLimit(String(show.episodeLimit));
-  }, [show.episodeLimit]);
+    setLimit(String(show.episodeLimit))
+  }, [show.episodeLimit])
 
   const patch = (p: Parameters<typeof update.mutate>[0]['patch']) =>
-    update.mutate({ id: show.id, patch: p });
+    update.mutate({ id: show.id, patch: p })
 
   const commitLimit = () => {
-    const parsed = Math.trunc(Number(limit));
+    const parsed = Math.trunc(Number(limit))
     if (!Number.isFinite(parsed) || parsed < 0) {
-      setLimit(String(show.episodeLimit));
-      return;
+      setLimit(String(show.episodeLimit))
+      return
     }
     if (parsed !== show.episodeLimit) {
-      patch({ episodeLimit: parsed });
+      patch({ episodeLimit: parsed })
     } else {
-      setLimit(String(parsed));
+      setLimit(String(parsed))
     }
-  };
+  }
 
   return (
     <Card>
@@ -120,7 +120,7 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
                 onChange={(e) => setLimit(e.target.value)}
                 onBlur={commitLimit}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.currentTarget.blur();
+                  if (e.key === 'Enter') e.currentTarget.blur()
                 }}
                 className="w-24 text-right"
                 aria-label="Episode limit"
@@ -129,11 +129,9 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
           />
         </div>
         {update.isError && (
-          <p className="mt-3 text-xs text-danger">
-            Failed to save: {update.error.message}
-          </p>
+          <p className="mt-3 text-xs text-danger">Failed to save: {update.error.message}</p>
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

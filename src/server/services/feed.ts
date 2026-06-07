@@ -26,7 +26,10 @@ const parser: Parser<unknown, CustomItem> = new Parser({
 /** Fetch a feed URL with a browser-ish UA and parse it. fetch follows redirects. */
 async function fetchAndParse(feedUrl: string) {
   const res = await fetch(feedUrl, {
-    headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/xml, text/xml, */*' },
+    headers: {
+      'User-Agent': USER_AGENT,
+      Accept: 'application/rss+xml, application/xml, text/xml, */*',
+    },
     redirect: 'follow',
   })
   if (!res.ok) throw new Error(`feed fetch failed (${res.status}) for ${feedUrl}`)
@@ -36,7 +39,12 @@ async function fetchAndParse(feedUrl: string) {
 
 /** Derive a stable per-show episode identity. Prefer the RSS <guid>; the
  * enclosure URL is unreliable (CDNs inject per-request tracking params). */
-function episodeGuid(item: { guid?: string; id?: string; link?: string; enclosure?: { url?: string } }): string | null {
+function episodeGuid(item: {
+  guid?: string
+  id?: string
+  link?: string
+  enclosure?: { url?: string }
+}): string | null {
   return item.guid ?? item.id ?? item.link ?? item.enclosure?.url ?? null
 }
 
@@ -57,7 +65,10 @@ export async function subscribeToFeed(feedUrl: string): Promise<Show> {
   const feed = await fetchAndParse(feedUrl)
   const title = feed.title?.trim() || feedUrl
   const base = slugify(title)
-  const slug = uniqueSlug(base, (s) => !!db.select({ id: shows.id }).from(shows).where(eq(shows.slug, s)).get())
+  const slug = uniqueSlug(
+    base,
+    (s) => !!db.select({ id: shows.id }).from(shows).where(eq(shows.slug, s)).get(),
+  )
 
   const show = db
     .insert(shows)

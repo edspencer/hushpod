@@ -58,6 +58,9 @@ export function clearSetting(key: keyof AppSettings): void {
 
 /** True if the settings table has never been written (fresh install). */
 export function settingsAreEmpty(): boolean {
-  const rows = db.select({ count: sql<number>`count(*)` }).from(settings).all()
+  const rows = db
+    .select({ count: sql<number>`count(*)` })
+    .from(settings)
+    .all()
   return (rows[0]?.count ?? 0) === 0
 }

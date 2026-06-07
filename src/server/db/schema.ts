@@ -16,8 +16,12 @@ export const shows = sqliteTable('shows', {
   removeAds: integer('remove_ads', { mode: 'boolean' }).notNull().default(true),
   removePromos: integer('remove_promos', { mode: 'boolean' }).notNull().default(true),
   lastCheckedAt: integer('last_checked_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
 })
 
 /**
@@ -48,8 +52,12 @@ export const episodes = sqliteTable(
       .default('pending'),
     errorMessage: text('error_message'),
     retryCount: integer('retry_count').notNull().default(0),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
   },
   (table) => ({
     uniqueGuidPerShow: unique().on(table.showId, table.guid),
@@ -78,8 +86,12 @@ export const ads = sqliteTable('ads', {
   company: text('company'), // Advertiser name (e.g., "Curiosity Stream")
   adText: text('ad_text'), // Transcript text of the ad
   reason: text('reason'), // Why the LLM classified this as an ad
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
 })
 
 /**
@@ -89,7 +101,9 @@ export const ads = sqliteTable('ads', {
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
 })
 
 export const showsRelations = relations(shows, ({ many }) => ({

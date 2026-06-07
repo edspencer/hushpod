@@ -1,31 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
-import { AlertCircle, CheckCircle2, RotateCcw, Save } from 'lucide-react';
-import {
-  Button,
-  Input,
-  Label,
-  Select,
-  Spinner,
-  Switch,
-} from '@client/components/ui';
-import { SettingsSection } from '@client/components/SettingsSection';
-import { useSettings, useUpdateSettings } from '@client/lib/api';
-import type { AppSettings } from '@client/lib/api';
-import { cn } from '@client/lib/cn';
+import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
+import { AlertCircle, CheckCircle2, RotateCcw, Save } from 'lucide-react'
+import { Button, Input, Label, Select, Spinner, Switch } from '@client/components/ui'
+import { SettingsSection } from '@client/components/SettingsSection'
+import { useSettings, useUpdateSettings } from '@client/lib/api'
+import type { AppSettings } from '@client/lib/api'
+import { cn } from '@client/lib/cn'
 
-const REDACTED = '••••••';
-const KEY_FIELDS: (keyof AppSettings)[] = ['whisperApiKey', 'llmApiKey'];
+const REDACTED = '••••••'
+const KEY_FIELDS: (keyof AppSettings)[] = ['whisperApiKey', 'llmApiKey']
 
 /* ------------------------------------------------------------------ */
 /* Field layout helper                                                */
 /* ------------------------------------------------------------------ */
 
 interface FieldProps {
-  htmlFor: string;
-  label: string;
-  help?: ReactNode;
-  children: ReactNode;
+  htmlFor: string
+  label: string
+  help?: ReactNode
+  children: ReactNode
 }
 
 function Field({ htmlFor, label, help, children }: FieldProps) {
@@ -35,28 +28,24 @@ function Field({ htmlFor, label, help, children }: FieldProps) {
       {children}
       {help ? <p className="text-xs text-muted">{help}</p> : null}
     </div>
-  );
+  )
 }
 
 /* ------------------------------------------------------------------ */
 /* Diff helper                                                        */
 /* ------------------------------------------------------------------ */
 
-function diffSettings(
-  loaded: AppSettings,
-  form: AppSettings,
-): Partial<AppSettings> {
-  const patch: Partial<AppSettings> = {};
-  (Object.keys(form) as (keyof AppSettings)[]).forEach((key) => {
-    const next = form[key];
-    const prev = loaded[key];
-    if (next === prev) return;
+function diffSettings(loaded: AppSettings, form: AppSettings): Partial<AppSettings> {
+  const patch: Partial<AppSettings> = {}
+  ;(Object.keys(form) as (keyof AppSettings)[]).forEach((key) => {
+    const next = form[key]
+    const prev = loaded[key]
+    if (next === prev) return
     // Skip unchanged redacted key placeholders.
-    if (KEY_FIELDS.includes(key) && next === REDACTED) return;
-    (patch as Record<keyof AppSettings, AppSettings[keyof AppSettings]>)[key] =
-      next;
-  });
-  return patch;
+    if (KEY_FIELDS.includes(key) && next === REDACTED) return
+    ;(patch as Record<keyof AppSettings, AppSettings[keyof AppSettings]>)[key] = next
+  })
+  return patch
 }
 
 /* ------------------------------------------------------------------ */
@@ -64,28 +53,28 @@ function diffSettings(
 /* ------------------------------------------------------------------ */
 
 export default function Settings() {
-  const settingsQuery = useSettings();
-  const updateSettings = useUpdateSettings();
+  const settingsQuery = useSettings()
+  const updateSettings = useUpdateSettings()
 
-  const loaded = settingsQuery.data;
-  const [form, setForm] = useState<AppSettings | null>(null);
+  const loaded = settingsQuery.data
+  const [form, setForm] = useState<AppSettings | null>(null)
 
   // Initialize / re-sync local form state when the loaded settings change.
   useEffect(() => {
-    if (loaded) setForm(loaded);
-  }, [loaded]);
+    if (loaded) setForm(loaded)
+  }, [loaded])
 
   const isDirty = useMemo(() => {
-    if (!loaded || !form) return false;
-    return Object.keys(diffSettings(loaded, form)).length > 0;
-  }, [loaded, form]);
+    if (!loaded || !form) return false
+    return Object.keys(diffSettings(loaded, form)).length > 0
+  }, [loaded, form])
 
   if (settingsQuery.isLoading || !form || !loaded) {
     return (
       <div className="flex items-center justify-center py-24">
         <Spinner className="h-6 w-6" />
       </div>
-    );
+    )
   }
 
   if (settingsQuery.isError) {
@@ -94,35 +83,34 @@ export default function Settings() {
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <span>Failed to load settings: {settingsQuery.error.message}</span>
       </div>
-    );
+    )
   }
 
   /* Typed setters -------------------------------------------------- */
   function set<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
-    setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setForm((prev) => (prev ? { ...prev, [key]: value } : prev))
   }
 
   function setNumber<K extends keyof AppSettings>(key: K, raw: string) {
-    const n = Number(raw);
-    set(key, (Number.isFinite(n) ? n : 0) as AppSettings[K]);
+    const n = Number(raw)
+    set(key, (Number.isFinite(n) ? n : 0) as AppSettings[K])
   }
 
   function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!loaded || !form) return;
-    const patch = diffSettings(loaded, form);
-    if (Object.keys(patch).length === 0) return;
-    updateSettings.mutate(patch);
+    e.preventDefault()
+    if (!loaded || !form) return
+    const patch = diffSettings(loaded, form)
+    if (Object.keys(patch).length === 0) return
+    updateSettings.mutate(patch)
   }
 
   function handleReset() {
-    if (loaded) setForm(loaded);
-    updateSettings.reset();
+    if (loaded) setForm(loaded)
+    updateSettings.reset()
   }
 
-  const showLlmBaseUrl =
-    form.llmProvider === 'openai-compatible' || form.llmProvider === 'ollama';
-  const isRemoteWhisper = form.whisperMode === 'remote';
+  const showLlmBaseUrl = form.llmProvider === 'openai-compatible' || form.llmProvider === 'ollama'
+  const isRemoteWhisper = form.whisperMode === 'remote'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-24">
@@ -142,9 +130,7 @@ export default function Settings() {
           <Select
             id="llmProvider"
             value={form.llmProvider}
-            onChange={(e) =>
-              set('llmProvider', e.target.value as AppSettings['llmProvider'])
-            }
+            onChange={(e) => set('llmProvider', e.target.value as AppSettings['llmProvider'])}
           >
             <option value="openai-compatible">OpenAI-compatible</option>
             <option value="openai">OpenAI</option>
@@ -205,9 +191,7 @@ export default function Settings() {
           <Select
             id="whisperMode"
             value={form.whisperMode}
-            onChange={(e) =>
-              set('whisperMode', e.target.value as AppSettings['whisperMode'])
-            }
+            onChange={(e) => set('whisperMode', e.target.value as AppSettings['whisperMode'])}
           >
             <option value="local">Local (whisper.cpp)</option>
             <option value="remote">Remote (OpenAI-compatible)</option>
@@ -255,9 +239,7 @@ export default function Settings() {
                 type="password"
                 autoComplete="off"
                 value={form.whisperApiKey}
-                placeholder={
-                  loaded.whisperApiKey === REDACTED ? REDACTED : 'sk-…'
-                }
+                placeholder={loaded.whisperApiKey === REDACTED ? REDACTED : 'sk-…'}
                 onChange={(e) => set('whisperApiKey', e.target.value)}
               />
             </Field>
@@ -271,18 +253,13 @@ export default function Settings() {
         description="Scheduling and resource usage for the processing pipeline."
       >
         <div className="grid gap-5 sm:grid-cols-3">
-          <Field
-            htmlFor="checkIntervalMinutes"
-            label="Check interval (minutes)"
-          >
+          <Field htmlFor="checkIntervalMinutes" label="Check interval (minutes)">
             <Input
               id="checkIntervalMinutes"
               type="number"
               min={1}
               value={String(form.checkIntervalMinutes)}
-              onChange={(e) =>
-                setNumber('checkIntervalMinutes', e.target.value)
-              }
+              onChange={(e) => setNumber('checkIntervalMinutes', e.target.value)}
             />
           </Field>
 
@@ -334,9 +311,7 @@ export default function Settings() {
       >
         <div className="flex items-center justify-between gap-4">
           <div className="grid gap-1">
-            <Label htmlFor="enableTransitionDetection">
-              Enable transition detection
-            </Label>
+            <Label htmlFor="enableTransitionDetection">Enable transition detection</Label>
             <p className="text-xs text-muted">
               Detect and remove short transition sounds adjacent to ads.
             </p>
@@ -361,9 +336,7 @@ export default function Settings() {
                 type="number"
                 min={0}
                 value={String(form.transitionWindowSeconds)}
-                onChange={(e) =>
-                  setNumber('transitionWindowSeconds', e.target.value)
-                }
+                onChange={(e) => setNumber('transitionWindowSeconds', e.target.value)}
               />
             </Field>
 
@@ -377,9 +350,7 @@ export default function Settings() {
                 type="number"
                 step={0.1}
                 value={String(form.transitionEnergyThreshold)}
-                onChange={(e) =>
-                  setNumber('transitionEnergyThreshold', e.target.value)
-                }
+                onChange={(e) => setNumber('transitionEnergyThreshold', e.target.value)}
               />
             </Field>
           </div>
@@ -408,11 +379,7 @@ export default function Settings() {
         </Button>
 
         {updateSettings.isSuccess && !isDirty ? (
-          <span
-            className={cn(
-              'inline-flex items-center gap-1.5 text-sm text-success',
-            )}
-          >
+          <span className={cn('inline-flex items-center gap-1.5 text-sm text-success')}>
             <CheckCircle2 className="h-4 w-4" aria-hidden />
             Saved
           </span>
@@ -426,5 +393,5 @@ export default function Settings() {
         ) : null}
       </div>
     </form>
-  );
+  )
 }

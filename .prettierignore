@@ -1,0 +1,8 @@
+node_modules
+dist
+data
+coverage
+drizzle
+pnpm-lock.yaml
+hushpod-spec.md
+docs

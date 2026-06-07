@@ -12,7 +12,10 @@ const MERGE_GAP_SEC = 1.0
 /** Merge overlapping/near-adjacent cut ranges and clamp to [0, duration]. */
 export function normalizeCuts(cuts: TimeRange[], duration: number): TimeRange[] {
   const clamped = cuts
-    .map((c) => ({ start: Math.max(0, Math.min(c.start, c.end)), end: Math.min(duration, Math.max(c.start, c.end)) }))
+    .map((c) => ({
+      start: Math.max(0, Math.min(c.start, c.end)),
+      end: Math.min(duration, Math.max(c.start, c.end)),
+    }))
     .filter((c) => c.end - c.start > 0.05)
     .sort((a, b) => a.start - b.start)
 
@@ -60,7 +63,8 @@ export async function cutEpisode(
   settings: AppSettings,
 ): Promise<CutResult> {
   const keep = computeKeepRanges(duration, cuts)
-  if (keep.length === 0) throw new Error('cutEpisode: every second was marked as ad — refusing to produce empty audio')
+  if (keep.length === 0)
+    throw new Error('cutEpisode: every second was marked as ad — refusing to produce empty audio')
 
   const keptSeconds = keep.reduce((acc, r) => acc + (r.end - r.start), 0)
   const removedSeconds = Math.max(0, duration - keptSeconds)

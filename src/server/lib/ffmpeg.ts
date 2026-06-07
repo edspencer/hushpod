@@ -90,7 +90,8 @@ export function extractPcm(
     child.stderr.on('data', (d) => (err += d.toString()))
     child.on('error', reject)
     child.on('close', (code) => {
-      if (code !== 0) return reject(new Error(`ffmpeg pcm extract failed (${code}): ${err.slice(-500)}`))
+      if (code !== 0)
+        return reject(new Error(`ffmpeg pcm extract failed (${code}): ${err.slice(-500)}`))
       const buf = Buffer.concat(chunks)
       // Float32Array view over the byte buffer (aligned copy to be safe).
       const f32 = new Float32Array(buf.byteLength / 4)
@@ -120,7 +121,9 @@ export async function cutToRanges(
   const parts: string[] = []
   keep.forEach((r, i) => {
     const lbl = `a${i}`
-    parts.push(`[0:a]atrim=start=${r.start.toFixed(3)}:end=${r.end.toFixed(3)},asetpts=PTS-STARTPTS[${lbl}]`)
+    parts.push(
+      `[0:a]atrim=start=${r.start.toFixed(3)}:end=${r.end.toFixed(3)},asetpts=PTS-STARTPTS[${lbl}]`,
+    )
     labels.push(`[${lbl}]`)
   })
 
@@ -166,7 +169,20 @@ export async function cutToRanges(
 
 /** Convert any input audio to a 16kHz mono WAV (whisper-friendly). */
 export async function toWav16k(input: string, output: string): Promise<void> {
-  await run(FFMPEG, ['-v', 'error', '-i', input, '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', '-y', output])
+  await run(FFMPEG, [
+    '-v',
+    'error',
+    '-i',
+    input,
+    '-ac',
+    '1',
+    '-ar',
+    '16000',
+    '-c:a',
+    'pcm_s16le',
+    '-y',
+    output,
+  ])
 }
 
 /**

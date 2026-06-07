@@ -1,62 +1,56 @@
-import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
-import { Rss, AlertCircle } from 'lucide-react';
-import {
-  Dialog,
-  Button,
-  Input,
-  Label,
-  Spinner,
-} from '@client/components/ui';
-import { useAddShow, ApiError } from '@client/lib/api';
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
+import { Rss, AlertCircle } from 'lucide-react'
+import { Dialog, Button, Input, Label, Spinner } from '@client/components/ui'
+import { useAddShow, ApiError } from '@client/lib/api'
 
 export interface AddShowDialogProps {
-  open: boolean;
-  onClose: () => void;
+  open: boolean
+  onClose: () => void
 }
 
 function looksLikeUrl(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
+  const trimmed = value.trim()
+  if (!trimmed) return false
   try {
-    const url = new URL(trimmed);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    const url = new URL(trimmed)
+    return url.protocol === 'http:' || url.protocol === 'https:'
   } catch {
-    return false;
+    return false
   }
 }
 
 export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
-  const [feedUrl, setFeedUrl] = useState('');
-  const addShow = useAddShow();
+  const [feedUrl, setFeedUrl] = useState('')
+  const addShow = useAddShow()
 
   // Reset local state whenever the dialog is (re)opened.
   useEffect(() => {
     if (open) {
-      setFeedUrl('');
-      addShow.reset();
+      setFeedUrl('')
+      addShow.reset()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open])
 
-  const isValid = looksLikeUrl(feedUrl);
-  const isPending = addShow.isPending;
+  const isValid = looksLikeUrl(feedUrl)
+  const isPending = addShow.isPending
 
   const errorMessage =
     addShow.error instanceof ApiError
       ? addShow.error.message
       : addShow.error
         ? addShow.error.message
-        : null;
+        : null
 
   function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!isValid || isPending) return;
+    e.preventDefault()
+    if (!isValid || isPending) return
     addShow.mutate(feedUrl.trim(), {
       onSuccess: () => {
-        onClose();
+        onClose()
       },
-    });
+    })
   }
 
   return (
@@ -70,11 +64,7 @@ export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
           <Button variant="outline" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            form="add-show-form"
-            disabled={!isValid || isPending}
-          >
+          <Button type="submit" form="add-show-form" disabled={!isValid || isPending}>
             {isPending ? (
               <>
                 <Spinner className="text-white" label="Adding" />
@@ -106,9 +96,7 @@ export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
             />
           </div>
           {feedUrl.length > 0 && !isValid && (
-            <p className="text-xs text-muted">
-              Enter a valid http(s) URL.
-            </p>
+            <p className="text-xs text-muted">Enter a valid http(s) URL.</p>
           )}
         </div>
 
@@ -120,5 +108,5 @@ export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
         )}
       </form>
     </Dialog>
-  );
+  )
 }

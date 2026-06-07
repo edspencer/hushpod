@@ -1,17 +1,17 @@
-import { Link } from 'react-router-dom';
-import { Podcast, ListMusic, Loader2 } from 'lucide-react';
-import { Badge } from '@client/components/ui';
-import { cn } from '@client/lib/cn';
-import type { Show } from '@client/lib/api';
+import { Link } from 'react-router-dom'
+import { Podcast, ListMusic, Loader2 } from 'lucide-react'
+import { Badge } from '@client/components/ui'
+import { cn } from '@client/lib/cn'
+import type { Show } from '@client/lib/api'
 
 export interface ShowCardProps {
-  show: Show;
+  show: Show
   /** Whether the pipeline is actively processing work for this show. */
-  processing?: boolean;
+  processing?: boolean
 }
 
 export function ShowCard({ show, processing = false }: ShowCardProps) {
-  const isProcessing = processing;
+  const isProcessing = processing
 
   return (
     <Link
@@ -30,7 +30,7 @@ export function ShowCard({ show, processing = false }: ShowCardProps) {
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              e.currentTarget.style.display = 'none'
             }}
           />
         ) : (
@@ -65,5 +65,5 @@ export function ShowCard({ show, processing = false }: ShowCardProps) {
         </div>
       </div>
     </Link>
-  );
+  )
 }

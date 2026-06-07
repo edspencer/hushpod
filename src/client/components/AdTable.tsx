@@ -1,54 +1,46 @@
-import { useMemo } from 'react';
-import { BarChart3, Megaphone } from 'lucide-react';
-import {
-  Badge,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@client/components/ui';
-import type { Ad, AdLabel } from '@client/lib/api';
-import { cn } from '@client/lib/cn';
+import { useMemo } from 'react'
+import { BarChart3, Megaphone } from 'lucide-react'
+import { Badge, Card, CardContent, CardHeader, CardTitle } from '@client/components/ui'
+import type { Ad, AdLabel } from '@client/lib/api'
+import { cn } from '@client/lib/cn'
 
 export interface AdTableProps {
-  ads: Ad[];
-  className?: string;
+  ads: Ad[]
+  className?: string
 }
 
-const LABELS: AdLabel[] = ['ad', 'promo', 'intro', 'outro'];
+const LABELS: AdLabel[] = ['ad', 'promo', 'intro', 'outro']
 
 function formatDuration(seconds: number): string {
-  const total = Math.max(0, Math.round(seconds));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  const total = Math.max(0, Math.round(seconds))
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${String(s).padStart(2, '0')}`
 }
 
 function companyName(company: string | null): string {
-  return company?.trim() ? company.trim() : 'Unknown';
+  return company?.trim() ? company.trim() : 'Unknown'
 }
 
 export function AdTable({ ads, className }: AdTableProps) {
   const sorted = useMemo(() => {
     return [...ads].sort((a, b) => {
-      const ca = companyName(a.company).toLowerCase();
-      const cb = companyName(b.company).toLowerCase();
-      if (ca !== cb) return ca.localeCompare(cb);
-      if (a.episodeId !== b.episodeId) return a.episodeId - b.episodeId;
-      return a.startTime - b.startTime;
-    });
-  }, [ads]);
+      const ca = companyName(a.company).toLowerCase()
+      const cb = companyName(b.company).toLowerCase()
+      if (ca !== cb) return ca.localeCompare(cb)
+      if (a.episodeId !== b.episodeId) return a.episodeId - b.episodeId
+      return a.startTime - b.startTime
+    })
+  }, [ads])
 
   const topAdvertisers = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, number>()
     for (const ad of ads) {
-      const name = companyName(ad.company);
-      map.set(name, (map.get(name) ?? 0) + 1);
+      const name = companyName(ad.company)
+      map.set(name, (map.get(name) ?? 0) + 1)
     }
-    return [...map.entries()]
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .slice(0, 5);
-  }, [ads]);
+    return [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5)
+  }, [ads])
 
   return (
     <Card className={cn('overflow-hidden', className)}>
@@ -64,9 +56,7 @@ export function AdTable({ ads, className }: AdTableProps) {
 
       {ads.length === 0 ? (
         <CardContent>
-          <p className="text-sm text-muted">
-            No ads have been detected for this show yet.
-          </p>
+          <p className="text-sm text-muted">No ads have been detected for this show yet.</p>
         </CardContent>
       ) : (
         <>
@@ -80,9 +70,7 @@ export function AdTable({ ads, className }: AdTableProps) {
                 {topAdvertisers.map(([name, count]) => (
                   <Badge key={name} variant="outline">
                     {name}
-                    <span className="ml-1 text-muted tabular-nums">
-                      {count}
-                    </span>
+                    <span className="ml-1 text-muted tabular-nums">{count}</span>
                   </Badge>
                 ))}
               </div>
@@ -101,14 +89,9 @@ export function AdTable({ ads, className }: AdTableProps) {
               </thead>
               <tbody>
                 {sorted.map((ad) => (
-                  <tr
-                    key={ad.id}
-                    className="border-b border-border last:border-0"
-                  >
+                  <tr key={ad.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-2.5 sm:px-5">
-                      <span className="font-medium text-fg">
-                        {companyName(ad.company)}
-                      </span>
+                      <span className="font-medium text-fg">{companyName(ad.company)}</span>
                       {ad.adText && (
                         <span className="mt-0.5 block max-w-xs truncate text-xs text-muted">
                           {ad.adText}
@@ -116,11 +99,7 @@ export function AdTable({ ads, className }: AdTableProps) {
                       )}
                     </td>
                     <td className="px-4 py-2.5">
-                      <Badge
-                        variant={
-                          LABELS.includes(ad.label) ? ad.label : 'secondary'
-                        }
-                      >
+                      <Badge variant={LABELS.includes(ad.label) ? ad.label : 'secondary'}>
                         {ad.label}
                       </Badge>
                     </td>
@@ -138,5 +117,5 @@ export function AdTable({ ads, className }: AdTableProps) {
         </>
       )}
     </Card>
-  );
+  )
 }

@@ -15,7 +15,8 @@ test('extractJson: plain object', () => {
 })
 
 test('extractJson: ignores prose and markdown fences', () => {
-  const text = 'Sure! Here is the JSON:\n```json\n{"segments":[{"startSegmentId":1}]}\n```\nHope that helps.'
+  const text =
+    'Sure! Here is the JSON:\n```json\n{"segments":[{"startSegmentId":1}]}\n```\nHope that helps.'
   assert.deepEqual(extractJson(text), { segments: [{ startSegmentId: 1 }] })
 })
 

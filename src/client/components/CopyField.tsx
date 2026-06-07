@@ -1,41 +1,37 @@
-import { useEffect, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
-import { Button, Input } from '@client/components/ui';
-import { cn } from '@client/lib/cn';
+import { useEffect, useState } from 'react'
+import { Check, Copy } from 'lucide-react'
+import { Button, Input } from '@client/components/ui'
+import { cn } from '@client/lib/cn'
 
 export interface CopyFieldProps {
-  value: string;
-  label?: string;
-  className?: string;
+  value: string
+  label?: string
+  className?: string
 }
 
 export function CopyField({ value, label, className }: CopyFieldProps) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (!copied) return;
-    const t = window.setTimeout(() => setCopied(false), 1800);
-    return () => window.clearTimeout(t);
-  }, [copied]);
+    if (!copied) return
+    const t = window.setTimeout(() => setCopied(false), 1800)
+    return () => window.clearTimeout(t)
+  }, [copied])
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
     } catch {
       /* clipboard unavailable; fall back to selection */
-      const el = document.getElementById('copyfield-fallback') as
-        | HTMLInputElement
-        | null;
-      el?.select();
+      const el = document.getElementById('copyfield-fallback') as HTMLInputElement | null
+      el?.select()
     }
-  };
+  }
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      {label && (
-        <span className="text-xs font-medium text-muted">{label}</span>
-      )}
+      {label && <span className="text-xs font-medium text-muted">{label}</span>}
       <div className="flex items-center gap-2">
         <Input
           id="copyfield-fallback"
@@ -67,5 +63,5 @@ export function CopyField({ value, label, className }: CopyFieldProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }

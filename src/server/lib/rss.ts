@@ -51,7 +51,11 @@ interface FeedInput {
 
 /** Build a complete RSS 2.0 feed (with the iTunes namespace) for the given
  * show/episode pairs. Only episodes with a clean file should be passed in. */
-function renderFeed(baseUrl: string, feed: FeedInput, items: Array<{ show: Show; ep: Episode }>): string {
+function renderFeed(
+  baseUrl: string,
+  feed: FeedInput,
+  items: Array<{ show: Show; ep: Episode }>,
+): string {
   const image = feed.imageUrl
     ? `    <image><url>${xml(feed.imageUrl)}</url><title>${xml(feed.title)}</title><link>${xml(feed.link)}</link></image>\n    <itunes:image href="${xml(feed.imageUrl)}" />`
     : ''

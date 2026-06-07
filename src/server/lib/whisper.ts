@@ -61,7 +61,10 @@ function finalize(raw: RawSegment[], language?: string): Transcript {
  * episodes are a single chunk. Timestamps are offset to absolute episode time
  * and de-duplicated across overlapping chunk seams.
  */
-export async function transcribe(audioPathInput: string, settings: AppSettings): Promise<Transcript> {
+export async function transcribe(
+  audioPathInput: string,
+  settings: AppSettings,
+): Promise<Transcript> {
   // Absolute path: nodejs-whisper mutates process.cwd(), which would otherwise
   // break any relative path on later iterations.
   const audioPath = resolve(audioPathInput)
@@ -78,7 +81,9 @@ export async function transcribe(audioPathInput: string, settings: AppSettings):
     const slice = join(tmpdir(), `hushpod-${process.pid}-${chunkStart}.wav`)
     await extractSliceWav(audioPath, chunkStart, chunkDur, slice)
     try {
-      log.info(`transcribing chunk ${chunkIndex} [${chunkStart}s +${chunkDur.toFixed(0)}s] (${settings.whisperMode})`)
+      log.info(
+        `transcribing chunk ${chunkIndex} [${chunkStart}s +${chunkDur.toFixed(0)}s] (${settings.whisperMode})`,
+      )
       const { segments, language: lang } = await transcribeSlice(slice, settings)
       if (!language) language = lang
       for (const seg of segments) {
@@ -104,7 +109,8 @@ async function transcribeSlice(
   settings: AppSettings,
 ): Promise<{ segments: RawSegment[]; language?: string }> {
   if (settings.whisperMode === 'remote') {
-    if (!settings.whisperEndpoint) throw new Error('whisperMode=remote but whisperEndpoint is empty')
+    if (!settings.whisperEndpoint)
+      throw new Error('whisperMode=remote but whisperEndpoint is empty')
     return transcribeRemote(wavPath, settings)
   }
   return transcribeLocal(wavPath, settings)

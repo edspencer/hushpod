@@ -1,9 +1,9 @@
-import { Loader2 } from 'lucide-react';
-import { cn } from '@client/lib/cn';
+import { Loader2 } from 'lucide-react'
+import { cn } from '@client/lib/cn'
 
 export interface SpinnerProps {
-  className?: string;
-  label?: string;
+  className?: string
+  label?: string
 }
 
 export function Spinner({ className, label = 'Loading' }: SpinnerProps) {
@@ -13,5 +13,5 @@ export function Spinner({ className, label = 'Loading' }: SpinnerProps) {
       aria-label={label}
       className={cn('h-4 w-4 animate-spin text-muted', className)}
     />
-  );
+  )
 }

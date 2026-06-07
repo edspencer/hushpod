@@ -14,16 +14,16 @@ lessons distilled from prior art (MinusPod / Podly / AGPAR).
 Functional end to end — the full pipeline has been validated on real feeds with
 a local Ollama model, and the web UI + Docker image are working.
 
-| Step | State |
-|------|-------|
-| Feed subscribe / parse / discovery | ✅ proven on real feeds |
-| Download (CDN redirects, byte cap, content-type) | ✅ |
+| Step                                                      | State                                    |
+| --------------------------------------------------------- | ---------------------------------------- |
+| Feed subscribe / parse / discovery                        | ✅ proven on real feeds                  |
+| Download (CDN redirects, byte cap, content-type)          | ✅                                       |
 | Transcribe (local whisper.cpp / remote OpenAI-compatible) | ✅ chunked, Metal-accelerated, validated |
-| Ad detection (LLM, segment-id mapping + JSON repair) | ✅ validated with Ollama qwen2.5:14b |
-| Cut (FFmpeg, keep-range math, transition-sound detection) | ✅ proven on real audio |
-| Clean RSS (ETag/304) + Range audio serving | ✅ proven (206 + 304) |
-| React UI (dashboard, show/episode, player, settings) | ✅ builds + serves |
-| Docker image | ✅ builds, boots, serves |
+| Ad detection (LLM, segment-id mapping + JSON repair)      | ✅ validated with Ollama qwen2.5:14b     |
+| Cut (FFmpeg, keep-range math, transition-sound detection) | ✅ proven on real audio                  |
+| Clean RSS (ETag/304) + Range audio serving                | ✅ proven (206 + 304)                    |
+| React UI (dashboard, show/episode, player, settings)      | ✅ builds + serves                       |
+| Docker image                                              | ✅ builds, boots, serves                 |
 
 Validated locally: subscribing to NPR's Up First, all 10 episodes processed
 through transcribe→detect→cut with Ollama; advertisers correctly extracted

@@ -36,8 +36,16 @@ export const AD_LABELS = ['ad', 'promo', 'intro', 'outro'] as const
 export type AdLabelValue = (typeof AD_LABELS)[number]
 
 export const DetectedSegmentSchema = z.object({
-  startSegmentId: z.number().int().nonnegative().describe('id of the first transcript segment in this ad'),
-  endSegmentId: z.number().int().nonnegative().describe('id of the last transcript segment in this ad (inclusive)'),
+  startSegmentId: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe('id of the first transcript segment in this ad'),
+  endSegmentId: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe('id of the last transcript segment in this ad (inclusive)'),
   label: z.enum(AD_LABELS),
   company: z.string().nullable().describe('Advertiser/company name if identifiable, else null'),
   reason: z.string().describe('Brief explanation of why this span is an ad/promo/intro/outro'),
@@ -74,7 +82,9 @@ export const SettingsSchema = z.object({
   whisperApiKey: z.string().default(''),
 
   // LLM ad detection
-  llmProvider: z.enum(['openai-compatible', 'openai', 'anthropic', 'ollama']).default('openai-compatible'),
+  llmProvider: z
+    .enum(['openai-compatible', 'openai', 'anthropic', 'ollama'])
+    .default('openai-compatible'),
   llmBaseUrl: z.string().default('http://localhost:11434/v1'),
   llmApiKey: z.string().default(''),
   llmModel: z.string().default('llama3.1'),

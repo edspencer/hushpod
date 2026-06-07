@@ -1,13 +1,13 @@
-import { forwardRef } from 'react';
-import { cn } from '@client/lib/cn';
+import { forwardRef } from 'react'
+import { cn } from '@client/lib/cn'
 
 export interface SwitchProps {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-  id?: string;
-  className?: string;
-  'aria-label'?: string;
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+  disabled?: boolean
+  id?: string
+  className?: string
+  'aria-label'?: string
 }
 
 export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
@@ -37,5 +37,5 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
       />
     </button>
   ),
-);
-Switch.displayName = 'Switch';
+)
+Switch.displayName = 'Switch'

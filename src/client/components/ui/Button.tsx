@@ -1,38 +1,29 @@
-import { forwardRef } from 'react';
-import type { ButtonHTMLAttributes } from 'react';
-import { cn } from '@client/lib/cn';
+import { forwardRef } from 'react'
+import type { ButtonHTMLAttributes } from 'react'
+import { cn } from '@client/lib/cn'
 
-export type ButtonVariant =
-  | 'default'
-  | 'secondary'
-  | 'outline'
-  | 'ghost'
-  | 'destructive';
-export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
+export type ButtonVariant = 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive'
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
 
 const variantClasses: Record<ButtonVariant, string> = {
-  default:
-    'bg-brand-600 text-white hover:bg-brand-500 focus-visible:ring-brand-500',
-  secondary:
-    'bg-surface-2 text-fg hover:bg-surface-2/70 focus-visible:ring-border',
+  default: 'bg-brand-600 text-white hover:bg-brand-500 focus-visible:ring-brand-500',
+  secondary: 'bg-surface-2 text-fg hover:bg-surface-2/70 focus-visible:ring-border',
   outline:
     'border border-border bg-transparent text-fg hover:bg-surface-2 focus-visible:ring-border',
-  ghost:
-    'bg-transparent text-fg hover:bg-surface-2 focus-visible:ring-border',
-  destructive:
-    'bg-danger text-white hover:bg-danger/90 focus-visible:ring-danger',
-};
+  ghost: 'bg-transparent text-fg hover:bg-surface-2 focus-visible:ring-border',
+  destructive: 'bg-danger text-white hover:bg-danger/90 focus-visible:ring-danger',
+}
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: 'h-8 px-3 text-xs gap-1.5',
   md: 'h-9 px-4 text-sm gap-2',
   lg: 'h-10 px-6 text-sm gap-2',
   icon: 'h-9 w-9 p-0',
-};
+}
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+  variant?: ButtonVariant
+  size?: ButtonSize
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -51,7 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       />
-    );
+    )
   },
-);
-Button.displayName = 'Button';
+)
+Button.displayName = 'Button'

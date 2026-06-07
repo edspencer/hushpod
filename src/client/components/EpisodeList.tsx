@@ -1,57 +1,57 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { AlertCircle, ChevronRight, Inbox, Megaphone } from 'lucide-react';
-import { Badge, Card, StatusBadge } from '@client/components/ui';
-import type { Ad, Episode } from '@client/lib/api';
-import { cn } from '@client/lib/cn';
+import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { AlertCircle, ChevronRight, Inbox, Megaphone } from 'lucide-react'
+import { Badge, Card, StatusBadge } from '@client/components/ui'
+import type { Ad, Episode } from '@client/lib/api'
+import { cn } from '@client/lib/cn'
 
 export interface EpisodeListProps {
-  episodes: Episode[];
+  episodes: Episode[]
   /** Optional ads for the whole show, used to display per-episode ad counts. */
-  ads?: Ad[];
-  className?: string;
+  ads?: Ad[]
+  className?: string
 }
 
 function formatDuration(seconds: number | null): string {
-  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return '—';
-  const total = Math.round(seconds);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return '—'
+  const total = Math.round(seconds)
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
 }
 
 function formatDate(value: string | null): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  });
+  })
 }
 
 function sortEpisodes(episodes: Episode[]): Episode[] {
   return [...episodes].sort((a, b) => {
-    const ta = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-    const tb = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
-    if (tb !== ta) return tb - ta;
-    return b.id - a.id;
-  });
+    const ta = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
+    const tb = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
+    if (tb !== ta) return tb - ta
+    return b.id - a.id
+  })
 }
 
 export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
-  const sorted = useMemo(() => sortEpisodes(episodes), [episodes]);
+  const sorted = useMemo(() => sortEpisodes(episodes), [episodes])
 
   const adCounts = useMemo(() => {
-    const map = new Map<number, number>();
+    const map = new Map<number, number>()
     for (const ad of ads ?? []) {
-      map.set(ad.episodeId, (map.get(ad.episodeId) ?? 0) + 1);
+      map.set(ad.episodeId, (map.get(ad.episodeId) ?? 0) + 1)
     }
-    return map;
-  }, [ads]);
+    return map
+  }, [ads])
 
   if (sorted.length === 0) {
     return (
@@ -63,11 +63,9 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
       >
         <Inbox className="h-8 w-8 text-muted" />
         <p className="text-sm font-medium text-fg">No episodes yet</p>
-        <p className="text-xs text-muted">
-          Check for new episodes to start processing this show.
-        </p>
+        <p className="text-xs text-muted">Check for new episodes to start processing this show.</p>
       </Card>
-    );
+    )
   }
 
   return (
@@ -87,7 +85,7 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
           </thead>
           <tbody>
             {sorted.map((ep) => {
-              const count = adCounts.get(ep.id) ?? 0;
+              const count = adCounts.get(ep.id) ?? 0
               return (
                 <tr
                   key={ep.id}
@@ -106,9 +104,7 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
                         <AlertCircle className="h-3 w-3 shrink-0" />
                         <span className="truncate">{ep.errorMessage}</span>
                         {ep.retryCount > 0 && (
-                          <span className="text-muted">
-                            (retry {ep.retryCount})
-                          </span>
+                          <span className="text-muted">(retry {ep.retryCount})</span>
                         )}
                       </span>
                     )}
@@ -142,7 +138,7 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
                     </Link>
                   </td>
                 </tr>
-              );
+              )
             })}
           </tbody>
         </table>
@@ -151,7 +147,7 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
       {/* Mobile cards */}
       <ul className="divide-y divide-border md:hidden">
         {sorted.map((ep) => {
-          const count = adCounts.get(ep.id) ?? 0;
+          const count = adCounts.get(ep.id) ?? 0
           return (
             <li key={ep.id}>
               <Link
@@ -164,9 +160,7 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                   <span>{formatDate(ep.publishedAt)}</span>
-                  <span className="tabular-nums">
-                    {formatDuration(ep.duration)}
-                  </span>
+                  <span className="tabular-nums">{formatDuration(ep.duration)}</span>
                   {count > 0 && (
                     <span className="inline-flex items-center gap-1 tabular-nums">
                       <Megaphone className="h-3 w-3" />
@@ -182,9 +176,9 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
                 )}
               </Link>
             </li>
-          );
+          )
         })}
       </ul>
     </Card>
-  );
+  )
 }

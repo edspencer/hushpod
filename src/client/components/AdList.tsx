@@ -1,35 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Scissors } from 'lucide-react';
-import {
-  Badge,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@client/components/ui';
-import type { Ad, AdLabel } from '@client/lib/api';
-import { cn } from '@client/lib/cn';
+import { useEffect, useRef, useState } from 'react'
+import { ChevronDown, Scissors } from 'lucide-react'
+import { Badge, Card, CardContent, CardHeader, CardTitle } from '@client/components/ui'
+import type { Ad, AdLabel } from '@client/lib/api'
+import { cn } from '@client/lib/cn'
 
 function fmtTime(total: number): string {
-  if (!Number.isFinite(total) || total < 0) total = 0;
-  const t = Math.floor(total);
-  const h = Math.floor(t / 3600);
-  const m = Math.floor((t % 3600) / 60);
-  const s = t % 60;
-  const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${mm}:${pad(s)}` : `${mm}:${pad(s)}`;
+  if (!Number.isFinite(total) || total < 0) total = 0
+  const t = Math.floor(total)
+  const h = Math.floor(t / 3600)
+  const m = Math.floor((t % 3600) / 60)
+  const s = t % 60
+  const mm = h > 0 ? String(m).padStart(2, '0') : String(m)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${mm}:${pad(s)}` : `${mm}:${pad(s)}`
 }
 
 function fmtDuration(seconds: number): string {
-  const s = Math.max(0, Math.round(seconds));
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  if (m < 60) return rem ? `${m}m ${rem}s` : `${m}m`;
-  const h = Math.floor(m / 60);
-  const mm = m % 60;
-  return mm ? `${h}h ${mm}m` : `${h}h`;
+  const s = Math.max(0, Math.round(seconds))
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  if (m < 60) return rem ? `${m}m ${rem}s` : `${m}m`
+  const h = Math.floor(m / 60)
+  const mm = m % 60
+  return mm ? `${h}h ${mm}m` : `${h}h`
 }
 
 const LABEL_TEXT: Record<AdLabel, string> = {
@@ -37,19 +31,19 @@ const LABEL_TEXT: Record<AdLabel, string> = {
   promo: 'Promo',
   intro: 'Intro',
   outro: 'Outro',
-};
+}
 
 function AdCard({ ad, active }: { ad: Ad; active: boolean }) {
-  const [expanded, setExpanded] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const duration = Math.max(0, ad.endTime - ad.startTime);
-  const text = ad.adText ?? '';
-  const isLong = text.length > 180;
+  const [expanded, setExpanded] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const duration = Math.max(0, ad.endTime - ad.startTime)
+  const text = ad.adText ?? ''
+  const isLong = text.length > 180
 
   // Bring the active segment into view (no-op if already visible).
   useEffect(() => {
-    if (active) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [active]);
+    if (active) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [active])
 
   return (
     <div
@@ -64,9 +58,7 @@ function AdCard({ ad, active }: { ad: Ad; active: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge variant={ad.label}>{LABEL_TEXT[ad.label]}</Badge>
-          <span className="text-sm font-medium text-fg">
-            {ad.company ?? 'Unknown advertiser'}
-          </span>
+          <span className="text-sm font-medium text-fg">{ad.company ?? 'Unknown advertiser'}</span>
           {active && (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-300">
               <span className="relative flex h-2 w-2">
@@ -78,25 +70,15 @@ function AdCard({ ad, active }: { ad: Ad; active: boolean }) {
           )}
         </div>
         <span className="font-mono text-xs text-muted">
-          {fmtTime(ad.startTime)}&ndash;{fmtTime(ad.endTime)} ·{' '}
-          {fmtDuration(duration)}
+          {fmtTime(ad.startTime)}&ndash;{fmtTime(ad.endTime)} · {fmtDuration(duration)}
         </span>
       </div>
 
-      {ad.reason && (
-        <p className="mt-2 text-xs text-muted">{ad.reason}</p>
-      )}
+      {ad.reason && <p className="mt-2 text-xs text-muted">{ad.reason}</p>}
 
       {text && (
         <div className="mt-2">
-          <p
-            className={cn(
-              'text-sm text-fg/80',
-              isLong && !expanded && 'line-clamp-2',
-            )}
-          >
-            {text}
-          </p>
+          <p className={cn('text-sm text-fg/80', isLong && !expanded && 'line-clamp-2')}>{text}</p>
           {isLong && (
             <button
               type="button"
@@ -105,36 +87,28 @@ function AdCard({ ad, active }: { ad: Ad; active: boolean }) {
             >
               {expanded ? 'Show less' : 'Show more'}
               <ChevronDown
-                className={cn(
-                  'h-3 w-3 transition-transform',
-                  expanded && 'rotate-180',
-                )}
+                className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')}
               />
             </button>
           )}
         </div>
       )}
     </div>
-  );
+  )
 }
 
 export interface AdListProps {
-  ads: Ad[];
-  originalDuration: number | null;
+  ads: Ad[]
+  originalDuration: number | null
   /** id of the segment currently under the player's playhead, if any */
-  activeAdId?: number | null;
-  className?: string;
+  activeAdId?: number | null
+  className?: string
 }
 
 export function AdList({ ads, originalDuration, activeAdId, className }: AdListProps) {
-  const removedSeconds = ads.reduce(
-    (sum, ad) => sum + Math.max(0, ad.endTime - ad.startTime),
-    0,
-  );
+  const removedSeconds = ads.reduce((sum, ad) => sum + Math.max(0, ad.endTime - ad.startTime), 0)
   const cleanDuration =
-    originalDuration != null
-      ? Math.max(0, originalDuration - removedSeconds)
-      : null;
+    originalDuration != null ? Math.max(0, originalDuration - removedSeconds) : null
 
   return (
     <Card className={className}>
@@ -144,8 +118,8 @@ export function AdList({ ads, originalDuration, activeAdId, className }: AdListP
           Detected segments
         </CardTitle>
         <span className="text-xs text-muted">
-          {ads.length} {ads.length === 1 ? 'segment' : 'segments'},{' '}
-          {fmtDuration(removedSeconds)} removed
+          {ads.length} {ads.length === 1 ? 'segment' : 'segments'}, {fmtDuration(removedSeconds)}{' '}
+          removed
         </span>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -173,9 +147,7 @@ export function AdList({ ads, originalDuration, activeAdId, className }: AdListP
         )}
 
         {ads.length === 0 ? (
-          <p className="py-2 text-sm text-muted">
-            No ads or promos detected yet.
-          </p>
+          <p className="py-2 text-sm text-muted">No ads or promos detected yet.</p>
         ) : (
           <div className="space-y-2">
             {ads.map((ad) => (
@@ -185,5 +157,5 @@ export function AdList({ ads, originalDuration, activeAdId, className }: AdListP
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

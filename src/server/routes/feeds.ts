@@ -19,7 +19,9 @@ function doneEpisodes(showId: number): Episode[] {
   return db
     .select()
     .from(episodes)
-    .where(and(eq(episodes.showId, showId), eq(episodes.status, 'done'), isNotNull(episodes.cleanPath)))
+    .where(
+      and(eq(episodes.showId, showId), eq(episodes.status, 'done'), isNotNull(episodes.cleanPath)),
+    )
     .orderBy(desc(episodes.publishedAt))
     .all()
 }
@@ -63,7 +65,11 @@ feedsRoute.get('/feed/all', (c) => {
     .limit(200)
     .all()
   const items = rows.map((r) => ({ show: r.shows as Show, ep: r.episodes as Episode }))
-  return serveFeed(c, items.map((i) => i.ep), buildAllFeed(baseUrl, items))
+  return serveFeed(
+    c,
+    items.map((i) => i.ep),
+    buildAllFeed(baseUrl, items),
+  )
 })
 
 feedsRoute.get('/feed/:slug', (c) => {

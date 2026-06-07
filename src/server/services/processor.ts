@@ -3,7 +3,15 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { and, desc, eq, inArray, lt, ne } from 'drizzle-orm'
 import { db } from '../db/index.js'
-import { episodes, ads, shows, type Episode, type Show, type Ad, type EpisodeStatus } from '../db/schema.js'
+import {
+  episodes,
+  ads,
+  shows,
+  type Episode,
+  type Show,
+  type Ad,
+  type EpisodeStatus,
+} from '../db/schema.js'
 import { episodeDir } from '../lib/config.js'
 import { getSettings } from '../lib/settings.js'
 import { logger } from '../lib/logger.js'
@@ -58,7 +66,10 @@ class ProcessQueue {
 export const queue = new ProcessQueue()
 
 function setStatus(id: number, status: EpisodeStatus, fields: Partial<Episode> = {}): void {
-  db.update(episodes).set({ status, updatedAt: new Date(), ...fields }).where(eq(episodes.id, id)).run()
+  db.update(episodes)
+    .set({ status, updatedAt: new Date(), ...fields })
+    .where(eq(episodes.id, id))
+    .run()
 }
 
 /** Find the most recent prior episode (by publish date) of the same show that
@@ -131,7 +142,8 @@ export async function processEpisode(episodeId: number): Promise<void> {
       const duration = episode.duration ?? transcript.durationSec ?? null
       setStatus(episodeId, 'transcribing', { transcript: JSON.stringify(transcript), duration })
     }
-    const duration = episode.duration ?? transcript.durationSec ?? transcript.segments.at(-1)?.end ?? 0
+    const duration =
+      episode.duration ?? transcript.durationSec ?? transcript.segments.at(-1)?.end ?? 0
 
     // 3. Detect ads.
     setStatus(episodeId, 'detecting')
@@ -174,7 +186,9 @@ export async function processEpisode(episodeId: number): Promise<void> {
       duration,
       errorMessage: null,
     })
-    log.info(`episode ${episodeId} "${episode.title}" done (${detected.length} ads, -${cut.removedSeconds.toFixed(0)}s)`)
+    log.info(
+      `episode ${episodeId} "${episode.title}" done (${detected.length} ads, -${cut.removedSeconds.toFixed(0)}s)`,
+    )
   } catch (err) {
     await handleFailure(episodeId, err as Error)
     throw err
@@ -210,7 +224,11 @@ export function resumePending(): void {
   const inFlight: EpisodeStatus[] = ['downloading', 'transcribing', 'detecting', 'cutting']
   db.update(episodes).set({ status: 'pending' }).where(inArray(episodes.status, inFlight)).run()
 
-  const pending = db.select({ id: episodes.id }).from(episodes).where(eq(episodes.status, 'pending')).all()
+  const pending = db
+    .select({ id: episodes.id })
+    .from(episodes)
+    .where(eq(episodes.status, 'pending'))
+    .all()
   for (const { id } of pending) queue.enqueue(id)
   if (pending.length > 0) log.info(`resumed ${pending.length} pending episode(s)`)
 }
