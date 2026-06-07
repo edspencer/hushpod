@@ -39,8 +39,17 @@ app.route('/', feedsRoute)
 // CLIENT_DIR is absolute so serving keeps working even while whisper has
 // temporarily changed the process cwd during transcription.
 if (existsSync(CLIENT_DIR)) {
-  app.use('/assets/*', serveStatic({ root: CLIENT_DIR }))
-  app.get('*', serveStatic({ path: join(CLIENT_DIR, 'index.html') }))
+  // Hashed assets are immutable — cache them aggressively.
+  app.use('/assets/*', (c, next) => {
+    c.header('Cache-Control', 'public, max-age=31536000, immutable')
+    return serveStatic({ root: CLIENT_DIR })(c, next)
+  })
+  // The SPA shell must never be cached, or browsers keep loading a stale
+  // index.html that points at an old (now-missing) bundle hash.
+  app.get('*', (c, next) => {
+    c.header('Cache-Control', 'no-cache')
+    return serveStatic({ path: join(CLIENT_DIR, 'index.html') })(c, next)
+  })
 }
 
 // Resume any work interrupted by a restart.
