@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
@@ -10,10 +12,28 @@ import {
   Switch,
 } from '@client/components/ui'
 import { useUpdateShow } from '@client/lib/api'
-import type { Show } from '@client/lib/api'
+import type { Show, ShowSettingsPatch } from '@client/lib/api'
 
 export interface ShowSettingsPanelProps {
   show: Show
+}
+
+interface FormState {
+  isActive: boolean
+  removeAds: boolean
+  removePromos: boolean
+  episodeLimit: string
+  detectionGuidance: string
+}
+
+function fromShow(show: Show): FormState {
+  return {
+    isActive: show.isActive,
+    removeAds: show.removeAds,
+    removePromos: show.removePromos,
+    episodeLimit: String(show.episodeLimit),
+    detectionGuidance: show.detectionGuidance ?? '',
+  }
 }
 
 function Row({
@@ -42,44 +62,46 @@ function Row({
 
 export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
   const update = useUpdateShow()
-  const [limit, setLimit] = useState(String(show.episodeLimit))
-  const [guidance, setGuidance] = useState(show.detectionGuidance ?? '')
+  const [form, setForm] = useState<FormState>(() => fromShow(show))
 
-  // Keep local input in sync if the show changes from elsewhere.
+  // Re-initialize only when switching to a different show.
   useEffect(() => {
-    setLimit(String(show.episodeLimit))
-  }, [show.episodeLimit])
-  useEffect(() => {
-    setGuidance(show.detectionGuidance ?? '')
-  }, [show.detectionGuidance])
+    setForm(fromShow(show))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show.id])
 
-  const patch = (p: Parameters<typeof update.mutate>[0]['patch']) =>
-    update.mutate({ id: show.id, patch: p })
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((f) => ({ ...f, [key]: value }))
 
-  const commitLimit = () => {
-    const parsed = Math.trunc(Number(limit))
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setLimit(String(show.episodeLimit))
-      return
-    }
-    if (parsed !== show.episodeLimit) {
-      patch({ episodeLimit: parsed })
-    } else {
-      setLimit(String(parsed))
-    }
+  const limitNum = Math.trunc(Number(form.episodeLimit))
+  const limitValid = Number.isFinite(limitNum) && limitNum >= 0
+
+  const baseline = fromShow(show)
+  const dirty =
+    form.isActive !== baseline.isActive ||
+    form.removeAds !== baseline.removeAds ||
+    form.removePromos !== baseline.removePromos ||
+    form.episodeLimit !== baseline.episodeLimit ||
+    form.detectionGuidance !== baseline.detectionGuidance
+
+  const save = () => {
+    if (!dirty || !limitValid) return
+    const patch: ShowSettingsPatch = {}
+    if (form.isActive !== show.isActive) patch.isActive = form.isActive
+    if (form.removeAds !== show.removeAds) patch.removeAds = form.removeAds
+    if (form.removePromos !== show.removePromos) patch.removePromos = form.removePromos
+    if (limitNum !== show.episodeLimit) patch.episodeLimit = limitNum
+    const g = form.detectionGuidance.trim()
+    if (g !== (show.detectionGuidance ?? '')) patch.detectionGuidance = g || null
+    update.mutate({ id: show.id, patch })
   }
 
-  const commitGuidance = () => {
-    const trimmed = guidance.trim()
-    const current = show.detectionGuidance ?? ''
-    if (trimmed !== current) patch({ detectionGuidance: trimmed || null })
-  }
+  const justSaved = update.isSuccess && !dirty
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+    <Card className="mx-auto max-w-2xl">
+      <CardHeader>
         <CardTitle>Settings</CardTitle>
-        {update.isPending && <Spinner label="Saving" />}
       </CardHeader>
       <CardContent>
         <div className="divide-y divide-border">
@@ -88,8 +110,8 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
             description="Automatically check and process new episodes."
             control={
               <Switch
-                checked={show.isActive}
-                onCheckedChange={(v) => patch({ isActive: v })}
+                checked={form.isActive}
+                onCheckedChange={(v) => set('isActive', v)}
                 aria-label="Active"
               />
             }
@@ -99,8 +121,8 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
             description="Strip detected advertisements from the clean feed."
             control={
               <Switch
-                checked={show.removeAds}
-                onCheckedChange={(v) => patch({ removeAds: v })}
+                checked={form.removeAds}
+                onCheckedChange={(v) => set('removeAds', v)}
                 aria-label="Remove ads"
               />
             }
@@ -110,8 +132,8 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
             description="Strip cross-promotions and host reads."
             control={
               <Switch
-                checked={show.removePromos}
-                onCheckedChange={(v) => patch({ removePromos: v })}
+                checked={form.removePromos}
+                onCheckedChange={(v) => set('removePromos', v)}
                 aria-label="Remove promos"
               />
             }
@@ -126,13 +148,10 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
                 type="number"
                 min={0}
                 inputMode="numeric"
-                value={limit}
-                onChange={(e) => setLimit(e.target.value)}
-                onBlur={commitLimit}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.currentTarget.blur()
-                }}
+                value={form.episodeLimit}
+                onChange={(e) => set('episodeLimit', e.target.value)}
                 className="w-24 text-right"
+                aria-invalid={!limitValid}
                 aria-label="Episode limit"
               />
             }
@@ -151,17 +170,37 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
           <textarea
             id="detection-guidance"
             rows={4}
-            value={guidance}
-            onChange={(e) => setGuidance(e.target.value)}
-            onBlur={commitGuidance}
+            value={form.detectionGuidance}
+            onChange={(e) => set('detectionGuidance', e.target.value)}
             placeholder="Optional — describe how this show's ads/promos behave…"
             className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
-        {update.isError && (
-          <p className="mt-3 text-xs text-danger">Failed to save: {update.error.message}</p>
-        )}
+        {/* Save bar */}
+        <div className="mt-4 flex items-center justify-end gap-3 border-t border-border pt-4">
+          {update.isError && (
+            <span className="mr-auto text-xs text-danger">
+              Failed to save: {update.error.message}
+            </span>
+          )}
+          {justSaved && (
+            <span className="mr-auto inline-flex items-center gap-1 text-xs text-success">
+              <Check className="h-3.5 w-3.5" /> Saved
+            </span>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => setForm(fromShow(show))}
+            disabled={!dirty || update.isPending}
+          >
+            Reset
+          </Button>
+          <Button onClick={save} disabled={!dirty || !limitValid || update.isPending}>
+            {update.isPending && <Spinner className="h-4 w-4" />}
+            Save changes
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

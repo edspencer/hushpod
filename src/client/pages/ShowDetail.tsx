@@ -1,13 +1,18 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, Check, RefreshCw, Radio, Trash2 } from 'lucide-react'
-import { Badge, Button, Card, CardContent, Dialog, Spinner } from '@client/components/ui'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { AlertCircle, ArrowLeft, Check, Copy, RefreshCw, Radio, Trash2 } from 'lucide-react'
+import { Badge, Button, Dialog, Spinner, Tabs } from '@client/components/ui'
 import { useCheckShow, useDeleteShow, useShow, useShowAds } from '@client/lib/api'
 import { AdTable } from '@client/components/AdTable'
-import { CopyField } from '@client/components/CopyField'
 import { EpisodeList } from '@client/components/EpisodeList'
 import { ShowSettingsPanel } from '@client/components/ShowSettingsPanel'
 import { ShowStats } from '@client/components/ShowStats'
+
+const TABS = [
+  { value: 'episodes', label: 'Episodes' },
+  { value: 'settings', label: 'Settings' },
+  { value: 'stats', label: 'Stats' },
+]
 
 function parseId(raw: string | undefined): number | undefined {
   if (!raw) return undefined
@@ -15,10 +20,42 @@ function parseId(raw: string | undefined): number | undefined {
   return Number.isInteger(n) && n > 0 ? n : undefined
 }
 
+/** A button that copies a value to the clipboard with brief feedback. */
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+  return (
+    <Button onClick={copy} className="w-full">
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      {copied ? 'Copied!' : 'Copy clean feed URL'}
+    </Button>
+  )
+}
+
 export default function ShowDetail() {
   const { id: rawId } = useParams<{ id: string }>()
   const id = parseId(rawId)
   const navigate = useNavigate()
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const rawTab = searchParams.get('tab') ?? 'episodes'
+  const tab = TABS.some((t) => t.value === rawTab) ? rawTab : 'episodes'
+  const setTab = (value: string) =>
+    setSearchParams(
+      (prev) => {
+        prev.set('tab', value)
+        return prev
+      },
+      { replace: true },
+    )
 
   const showQuery = useShow(id)
   const adsQuery = useShowAds(id)
@@ -63,9 +100,7 @@ export default function ShowDetail() {
 
   const handleCheck = () => {
     setCheckResult(null)
-    checkShow.mutate(id, {
-      onSuccess: (res) => setCheckResult(res.discovered),
-    })
+    checkShow.mutate(id, { onSuccess: (res) => setCheckResult(res.discovered) })
   }
 
   const handleDelete = () => {
@@ -90,7 +125,7 @@ export default function ShowDetail() {
         Back to shows
       </Link>
 
-      {/* Header */}
+      {/* Header: cover + title/description + stacked actions */}
       <header className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <div className="h-28 w-28 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2">
           {show.imageUrl ? (
@@ -120,68 +155,55 @@ export default function ShowDetail() {
             {show.episodeCount} {show.episodeCount === 1 ? 'episode' : 'episodes'}
           </p>
         </div>
-      </header>
 
-      {/* Feed URL */}
-      <Card>
-        <CardContent className="p-4 sm:p-5">
-          <CopyField label="Clean feed URL" value={feedUrl} />
-          <p className="mt-2 text-xs text-muted">
-            Subscribe to this URL in your podcast app to get the ad-free feed.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="secondary" onClick={handleCheck} disabled={checkShow.isPending}>
-          {checkShow.isPending ? (
-            <Spinner className="h-4 w-4" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Check for new episodes
-        </Button>
-
-        {checkShow.isSuccess && checkResult != null && (
-          <span className="inline-flex items-center gap-1.5 text-sm text-success">
-            <Check className="h-4 w-4" />
-            {checkResult === 0
-              ? 'No new episodes'
-              : `Found ${checkResult} new ${checkResult === 1 ? 'episode' : 'episodes'}`}
-          </span>
-        )}
-        {checkShow.isError && (
-          <span className="inline-flex items-center gap-1.5 text-sm text-danger">
-            <AlertCircle className="h-4 w-4" />
-            {checkShow.error.message}
-          </span>
-        )}
-
-        <div className="ml-auto">
-          <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-60">
+          <CopyButton value={feedUrl} />
+          <Button
+            variant="secondary"
+            onClick={handleCheck}
+            disabled={checkShow.isPending}
+            className="w-full"
+          >
+            {checkShow.isPending ? (
+              <Spinner className="h-4 w-4" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Check for new episodes
+          </Button>
+          <Button variant="outline" onClick={() => setConfirmOpen(true)} className="w-full">
             <Trash2 className="h-4 w-4" />
             Unsubscribe
           </Button>
+          {checkShow.isSuccess && checkResult != null && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-success">
+              <Check className="h-3.5 w-3.5" />
+              {checkResult === 0
+                ? 'No new episodes'
+                : `Found ${checkResult} new ${checkResult === 1 ? 'episode' : 'episodes'}`}
+            </span>
+          )}
+          {checkShow.isError && (
+            <span className="inline-flex items-start gap-1.5 text-xs text-danger">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {checkShow.error.message}
+            </span>
+          )}
         </div>
-      </div>
+      </header>
 
-      {/* Stats */}
-      <ShowStats episodes={show.episodes} ads={ads} />
-
-      {/* Main grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-fg">Episodes</h2>
-            <EpisodeList episodes={show.episodes} ads={ads} />
-          </section>
-
-          <AdTable ads={ads} />
-        </div>
-
-        <div className="space-y-6">
-          <ShowSettingsPanel show={show} />
+      {/* Tabs */}
+      <div>
+        <Tabs items={TABS} value={tab} onValueChange={setTab} />
+        <div className="mt-6">
+          {tab === 'episodes' && <EpisodeList episodes={show.episodes} ads={ads} />}
+          {tab === 'settings' && <ShowSettingsPanel show={show} />}
+          {tab === 'stats' && (
+            <div className="space-y-6">
+              <ShowStats episodes={show.episodes} ads={ads} />
+              <AdTable ads={ads} />
+            </div>
+          )}
         </div>
       </div>
 
