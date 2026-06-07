@@ -8,6 +8,7 @@ import {
 } from '../../shared/schemas.js'
 import { getModel } from '../lib/llm.js'
 import { logger } from '../lib/logger.js'
+import { findRecurringSpans, type RecurringSpan } from './recurrence.js'
 import type { AppSettings } from '../../shared/schemas.js'
 import type { Ad } from '../db/schema.js'
 
@@ -37,30 +38,29 @@ const SYSTEM_PROMPT = `You are an expert at identifying advertisements and promo
 You will receive a podcast transcript as a numbered list of segments, one per line, in the form:
 [<id>] <text>
 
-Identify every span that is an advertisement, sponsor read, cross-promotion, intro, or outro. For each, return the id of the FIRST and LAST segment of the span (inclusive). Use these labels:
+Identify every span that is an advertisement, sponsor read, cross-promotion, or recurring show boilerplate. For each, return the id of the FIRST and LAST segment of the span (inclusive). Use these labels:
 - "ad": a paid advertisement / sponsor read for a third-party product or service
 - "promo": an explicit plug to buy/subscribe/follow/support something — another show, Patreon, merch, a newsletter, or the show's own paid tier
-- "intro": show intro / cold open boilerplate before content begins
-- "outro": end-of-show credits, sign-off, "see you next week", bonus-material hand-off
+- "fluff": recurring show scaffolding that is neither editorial content nor a third-party ad — the standard show open / cold-open spiel, a "here's how this podcast works" explainer, the sign-off, production credits, station identification, and similar repeated housekeeping. It is the same most weeks. The host billboard ("I'm X, and this is <Show>") and the closing credits are fluff, NOT ads.
 
 What an ad or promo ACTUALLY looks like — it contains explicit promotional language:
 - a call to action ("go to…", "sign up", "use code…", "check out…", "download…")
 - a URL, promo code, or pricing/offer
 - a sponsorship frame ("this episode is sponsored by…", "support for this show comes from…")
-If a span has NONE of these signals, it is almost certainly editorial — do NOT flag it.
+If a span has none of these signals AND is not recurring boilerplate, it is editorial — do NOT flag it.
 
 CRITICAL — never flag editorial content:
-- Interview answers, host/guest discussion, narration, storytelling, and analysis are NEVER ads or promos, even when they mention a company, product, brand, or the episode's own topic.
+- Interview answers, host/guest discussion, narration, storytelling, and analysis are NEVER ads, promos, or fluff, even when they mention a company, product, brand, or the episode's own topic.
 - A passage is not a promo just because it resembles the episode description.
 
-Length: ads/promos are usually seconds to ~3 minutes; intros/outros are short. Be increasingly skeptical of long spans — a span over ~5 minutes is almost always editorial. Only flag a long span if it contains sustained, unmistakable ad language, and reflect your doubt in "confidence".
+Length: ads/promos are usually seconds to ~3 minutes; fluff scaffolding (billboard, sign-off, credits) is usually short, though a "how this show works" explainer can run longer. Be increasingly skeptical of long ad/promo spans — a span over ~5 minutes is almost always editorial. Only flag a long span if it contains sustained, unmistakable ad language, and reflect your doubt in "confidence".
 
 Rules:
 - Refer to segments ONLY by their [id]. Do not invent timestamps.
 - A single ad break may contain multiple distinct ads — return them as separate spans.
 - Set "company" to an advertiser/product name ONLY if it is named in THIS transcript. Never carry an advertiser over from another episode.
 - Set "confidence": high only when explicit ad language is present; medium if likely; low if uncertain.
-- Keep "reason" to one short sentence, citing the ad signal you found.`
+- Keep "reason" to one short sentence, citing the ad signal (or recurring-boilerplate cue) you found.`
 
 function renderTranscript(segments: Transcript['segments']): string {
   return segments.map((s) => `[${s.id}] ${s.text}`).join('\n')
@@ -84,12 +84,32 @@ function renderGuidance(guidance?: string | null): string {
   return `\nShow-specific guidance from the user — follow this carefully, it describes how THIS show's ads/promos behave:\n${g}\n`
 }
 
+/** Tell the model which spans recur near-verbatim across episodes — these are
+ * almost certainly "fluff" (show scaffolding). The model still gets to split out
+ * any third-party ad/promo embedded inside them. Only spans overlapping the
+ * current window are shown. */
+function renderRecurring(spans: RecurringSpan[], windowSegments: Transcript['segments']): string {
+  if (spans.length === 0 || windowSegments.length === 0) return ''
+  const lo = windowSegments[0]!.id
+  const hi = windowSegments[windowSegments.length - 1]!.id
+  const inWindow = spans.filter((s) => s.endSegmentId >= lo && s.startSegmentId <= hi)
+  if (inWindow.length === 0) return ''
+  const lines = inWindow
+    .map((s) => `- segments [${s.startSegmentId}]–[${s.endSegmentId}]: "${s.text.slice(0, 160)}"`)
+    .join('\n')
+  return `\nRecurring boilerplate: the following spans appear near-verbatim in previous episodes of this show, so they are almost certainly "fluff" (standard intro/sign-off/credits/housekeeping). Label them "fluff" UNLESS part of the span is a third-party ad or a promo — in that case label that part "ad"/"promo" and the surrounding boilerplate "fluff":\n${lines}\n`
+}
+
 function buildUserPrompt(
   segments: Transcript['segments'],
   previousAds: Ad[],
+  recurring: RecurringSpan[],
   guidance?: string | null,
 ): string {
-  return `${renderGuidance(guidance)}${renderPreviousAds(previousAds)}\nTranscript:\n${renderTranscript(segments)}`
+  return `${renderGuidance(guidance)}${renderPreviousAds(previousAds)}${renderRecurring(
+    recurring,
+    segments,
+  )}\nTranscript:\n${renderTranscript(segments)}`
 }
 
 /** Extract the first balanced JSON object from a string (repair path). */
@@ -120,10 +140,11 @@ async function detectWindow(
   settings: AppSettings,
   segments: Transcript['segments'],
   previousAds: Ad[],
+  recurring: RecurringSpan[],
   guidance?: string | null,
 ): Promise<DetectedSegment[]> {
   const model = getModel(settings)
-  const prompt = buildUserPrompt(segments, previousAds, guidance)
+  const prompt = buildUserPrompt(segments, previousAds, recurring, guidance)
 
   try {
     const { object } = await generateObject({
@@ -137,7 +158,7 @@ async function detectWindow(
     log.warn(`generateObject failed, trying repair fallback: ${(err as Error).message}`)
     const { text } = await generateText({
       model,
-      system: `${SYSTEM_PROMPT}\n\nRespond with ONLY a JSON object: {"segments":[{"startSegmentId":N,"endSegmentId":N,"label":"ad|promo|intro|outro","company":string|null,"reason":string,"confidence":"low|medium|high"}]}. No prose, no markdown.`,
+      system: `${SYSTEM_PROMPT}\n\nRespond with ONLY a JSON object: {"segments":[{"startSegmentId":N,"endSegmentId":N,"label":"ad|promo|fluff","company":string|null,"reason":string,"confidence":"low|medium|high"}]}. No prose, no markdown.`,
       prompt,
     })
     const parsed = DetectionResultSchema.parse(extractJson(text))
@@ -181,9 +202,16 @@ export async function detectAds(
   settings: AppSettings,
   previousAds: Ad[] = [],
   guidance?: string | null,
+  previousTranscripts: Transcript[] = [],
 ): Promise<DetectedAd[]> {
   const segs = transcript.segments
   if (segs.length === 0) return []
+
+  // Cross-episode recurrence: spans whose wording repeats across recent episodes
+  // are high-confidence "fluff" candidates. Fed to the LLM as priors, and any it
+  // ignores are added back as fluff (see addUncoveredFluff).
+  const recurring = findRecurringSpans(transcript, previousTranscripts)
+  if (recurring.length > 0) log.info(`found ${recurring.length} recurring span(s) across episodes`)
 
   const raw: DetectedSegment[] = []
 
@@ -191,15 +219,61 @@ export async function detectAds(
     const window = segs.slice(i, i + WINDOW_SEGMENTS)
     if (window.length === 0) break
     log.info(`detecting window ${i}-${i + window.length} of ${segs.length} segments`)
-    const found = await detectWindow(settings, window, previousAds, guidance)
+    const found = await detectWindow(settings, window, previousAds, recurring, guidance)
     raw.push(...found)
     if (i + WINDOW_SEGMENTS >= segs.length) break
   }
 
-  const mapped = mapDetectionsToAds(raw, segs)
+  const withFluff = addUncoveredFluff(raw, recurring)
+  const mapped = mapDetectionsToAds(withFluff, segs)
   const verified = await verifyDetections(mapped, settings, guidance)
+  const reconciled = verified.map(reclassifyFluff)
   log.info(`detected ${mapped.length} segment(s); kept ${verified.length} after verification`)
-  return verified
+  return reconciled
+}
+
+// Recurring sponsor reads and cross-promos repeat across episodes too, so
+// recurrence can sweep them into "fluff" — and a weak model may not split them
+// back out. That would let a real ad survive on a show where only removeAds is
+// on. These cues reclassify an ad/promo-bearing "fluff" span back to ad/promo so
+// the existing per-label toggles still catch it. Pure scaffolding (billboards,
+// credits, sign-offs) has none of these cues and stays fluff.
+const AD_CUES =
+  /\b(this message comes from|support for .{0,40}comes from|sponsored by|brought to you by|use (?:the )?(?:code|promo)|promo code)\b|[a-z0-9-]+\.(?:com|org|net|co)\/[a-z0-9]/i
+const PROMO_CUES =
+  /\b(wherever you get your podcasts|subscribe|follow .{0,40}podcast|patreon|sponsor[- ]free|without sponsor breaks|npr\+|plus\.npr\.org|listen (?:to|on|every|now|wherever))\b/i
+
+/** Re-label a "fluff" span back to ad/promo when it clearly contains one (see
+ * AD_CUES/PROMO_CUES). Non-fluff spans pass through unchanged. */
+export function reclassifyFluff(ad: DetectedAd): DetectedAd {
+  if (ad.label !== 'fluff') return ad
+  const text = ad.adText ?? ''
+  if (AD_CUES.test(text)) return { ...ad, label: 'ad' }
+  if (PROMO_CUES.test(text)) return { ...ad, label: 'promo' }
+  return ad
+}
+
+/** Add recurring spans the LLM didn't touch as "fluff". A recurring span is
+ * considered handled if any LLM detection overlaps its id-range (the model may
+ * have split it into ad/promo + fluff); otherwise we add it ourselves so
+ * recurrence-detected boilerplate is never silently dropped. */
+export function addUncoveredFluff(
+  detected: DetectedSegment[],
+  recurring: RecurringSpan[],
+): DetectedSegment[] {
+  const overlaps = (s: RecurringSpan) =>
+    detected.some((d) => d.endSegmentId >= s.startSegmentId && d.startSegmentId <= s.endSegmentId)
+  const added: DetectedSegment[] = recurring
+    .filter((s) => !overlaps(s))
+    .map((s) => ({
+      startSegmentId: s.startSegmentId,
+      endSegmentId: s.endSegmentId,
+      label: 'fluff' as const,
+      company: null,
+      reason: 'Recurs near-verbatim across episodes of this show',
+      confidence: 'high' as const,
+    }))
+  return [...detected, ...added]
 }
 
 const VerifierSchema = z.object({
@@ -222,8 +296,11 @@ async function verifyDetections(
   settings: AppSettings,
   guidance?: string | null,
 ): Promise<DetectedAd[]> {
+  // The verifier audits for ad LANGUAGE, so it only applies to ad/promo. Fluff
+  // is recurring scaffolding (often long, with no ad cues) — auditing it for ad
+  // language would wrongly drop it, so it bypasses verification entirely.
   const isSuspect = (a: DetectedAd) =>
-    a.endTime - a.startTime > SUSPECT_MAX_SECONDS || a.confidence === 'low'
+    a.label !== 'fluff' && (a.endTime - a.startTime > SUSPECT_MAX_SECONDS || a.confidence === 'low')
 
   const kept: DetectedAd[] = []
   for (const a of ads) {

@@ -9,7 +9,7 @@ export interface AdTableProps {
   className?: string
 }
 
-const LABELS: AdLabel[] = ['ad', 'promo', 'intro', 'outro']
+const LABELS: AdLabel[] = ['ad', 'promo', 'fluff']
 
 function formatDuration(seconds: number): string {
   const total = Math.max(0, Math.round(seconds))

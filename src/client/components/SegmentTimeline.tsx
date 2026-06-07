@@ -5,8 +5,7 @@ import { cn } from '@client/lib/cn'
 const LABEL_COLOR: Record<AdLabel, string> = {
   ad: 'bg-danger/70',
   promo: 'bg-warning/70',
-  intro: 'bg-info/70',
-  outro: 'bg-brand-400/70',
+  fluff: 'bg-info/70',
 }
 
 function mmss(s: number): string {

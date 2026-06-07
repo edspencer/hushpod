@@ -22,6 +22,7 @@ interface FormState {
   isActive: boolean
   removeAds: boolean
   removePromos: boolean
+  removeFluff: boolean
   episodeLimit: string
   detectionGuidance: string
 }
@@ -31,6 +32,7 @@ function fromShow(show: Show): FormState {
     isActive: show.isActive,
     removeAds: show.removeAds,
     removePromos: show.removePromos,
+    removeFluff: show.removeFluff,
     episodeLimit: String(show.episodeLimit),
     detectionGuidance: show.detectionGuidance ?? '',
   }
@@ -81,6 +83,7 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
     form.isActive !== baseline.isActive ||
     form.removeAds !== baseline.removeAds ||
     form.removePromos !== baseline.removePromos ||
+    form.removeFluff !== baseline.removeFluff ||
     form.episodeLimit !== baseline.episodeLimit ||
     form.detectionGuidance !== baseline.detectionGuidance
 
@@ -90,6 +93,7 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
     if (form.isActive !== show.isActive) patch.isActive = form.isActive
     if (form.removeAds !== show.removeAds) patch.removeAds = form.removeAds
     if (form.removePromos !== show.removePromos) patch.removePromos = form.removePromos
+    if (form.removeFluff !== show.removeFluff) patch.removeFluff = form.removeFluff
     if (limitNum !== show.episodeLimit) patch.episodeLimit = limitNum
     const g = form.detectionGuidance.trim()
     if (g !== (show.detectionGuidance ?? '')) patch.detectionGuidance = g || null
@@ -135,6 +139,17 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
                 checked={form.removePromos}
                 onCheckedChange={(v) => set('removePromos', v)}
                 aria-label="Remove promos"
+              />
+            }
+          />
+          <Row
+            title="Remove fluff"
+            description="Strip recurring show scaffolding — the standard intro spiel, sign-off, and credits that repeat every episode. Off by default."
+            control={
+              <Switch
+                checked={form.removeFluff}
+                onCheckedChange={(v) => set('removeFluff', v)}
+                aria-label="Remove fluff"
               />
             }
           />

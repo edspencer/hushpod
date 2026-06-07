@@ -12,8 +12,7 @@ export type BadgeVariant =
   | 'info'
   | 'ad'
   | 'promo'
-  | 'intro'
-  | 'outro'
+  | 'fluff'
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: 'border-transparent bg-brand-600 text-white',
@@ -25,8 +24,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   info: 'border-transparent bg-info/15 text-info',
   ad: 'border-transparent bg-danger/15 text-danger',
   promo: 'border-transparent bg-warning/15 text-warning',
-  intro: 'border-transparent bg-info/15 text-info',
-  outro: 'border-transparent bg-brand-500/15 text-brand-300',
+  fluff: 'border-transparent bg-info/15 text-info',
 }
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {

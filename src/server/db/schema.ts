@@ -15,6 +15,9 @@ export const shows = sqliteTable('shows', {
   episodeLimit: integer('episode_limit').notNull().default(10),
   removeAds: integer('remove_ads', { mode: 'boolean' }).notNull().default(true),
   removePromos: integer('remove_promos', { mode: 'boolean' }).notNull().default(true),
+  // Recurring show scaffolding (intro spiel, sign-off, credits, etc.). Detected
+  // by default but KEPT unless the user opts in per show.
+  removeFluff: integer('remove_fluff', { mode: 'boolean' }).notNull().default(false),
   // Free-form, per-show guidance injected into the ad-detection prompt.
   detectionGuidance: text('detection_guidance'),
   lastCheckedAt: integer('last_checked_at', { mode: 'timestamp' }),
@@ -81,7 +84,7 @@ export const ads = sqliteTable('ads', {
   startTime: real('start_time').notNull(), // Seconds from episode start
   endTime: real('end_time').notNull(), // Seconds from episode start
   label: text('label', {
-    enum: ['ad', 'promo', 'intro', 'outro'],
+    enum: ['ad', 'promo', 'fluff'],
   })
     .notNull()
     .default('ad'),

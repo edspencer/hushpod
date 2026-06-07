@@ -14,7 +14,7 @@ export type EpisodeStatus =
   | 'done'
   | 'error'
 
-export type AdLabel = 'ad' | 'promo' | 'intro' | 'outro'
+export type AdLabel = 'ad' | 'promo' | 'fluff'
 
 export interface Show {
   id: number
@@ -27,13 +27,17 @@ export interface Show {
   episodeLimit: number
   removeAds: boolean
   removePromos: boolean
+  removeFluff: boolean
   detectionGuidance: string | null
   lastCheckedAt: string | null
   episodeCount: number
 }
 
 export type ShowSettingsPatch = Partial<
-  Pick<Show, 'isActive' | 'episodeLimit' | 'removeAds' | 'removePromos' | 'detectionGuidance'>
+  Pick<
+    Show,
+    'isActive' | 'episodeLimit' | 'removeAds' | 'removePromos' | 'removeFluff' | 'detectionGuidance'
+  >
 >
 
 export interface Episode {

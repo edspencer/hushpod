@@ -39,8 +39,7 @@ function fmtDuration(seconds: number): string {
 const LABEL_TEXT: Record<AdLabel, string> = {
   ad: 'Ad',
   promo: 'Promo',
-  intro: 'Intro',
-  outro: 'Outro',
+  fluff: 'Fluff',
 }
 
 function AdCard({ ad, active }: { ad: Ad; active: boolean }) {

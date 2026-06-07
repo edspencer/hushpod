@@ -4,8 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 Self-hosted podcast ad remover. Subscribes to RSS feeds, downloads episodes,
-transcribes them, detects ads/promos/intros/outros with an LLM, cuts them out
-with FFmpeg, and serves clean ad-free RSS feeds you can subscribe to from any
+transcribes them, detects ads, promos, and recurring "fluff" (the show's
+intro spiel, sign-off, and credits) with an LLM, cuts out what you choose per
+show with FFmpeg, and serves clean RSS feeds you can subscribe to from any
 podcast app.
 
 TypeScript end to end. See [`hushpod-spec.md`](./hushpod-spec.md) for the full

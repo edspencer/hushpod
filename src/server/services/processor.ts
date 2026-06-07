@@ -95,15 +95,43 @@ function previousEpisodeAds(show: Show, current: Episode): Ad[] {
   return []
 }
 
-/** Which ad labels should be cut, given a show's settings. */
+/** The transcripts of the most recent prior episodes of the same show, used for
+ * cross-episode recurrence ("fluff") detection. */
+function previousEpisodeTranscripts(show: Show, current: Episode, limit = 4): Transcript[] {
+  const prior = db
+    .select({ transcript: episodes.transcript })
+    .from(episodes)
+    .where(
+      and(
+        eq(episodes.showId, show.id),
+        ne(episodes.id, current.id),
+        current.publishedAt ? lt(episodes.publishedAt, current.publishedAt) : undefined,
+      ),
+    )
+    .orderBy(desc(episodes.publishedAt))
+    .limit(limit)
+    .all()
+
+  const out: Transcript[] = []
+  for (const { transcript } of prior) {
+    if (!transcript) continue
+    try {
+      out.push(TranscriptSchema.parse(JSON.parse(transcript)))
+    } catch {
+      /* skip unparseable transcript */
+    }
+  }
+  return out
+}
+
+/** Which segment labels should be cut, given a show's settings. Each removable
+ * class has its own independent toggle. "fluff" (recurring show scaffolding) is
+ * detected always but cut only when the user opts in. */
 function labelsToCut(show: Show): Set<string> {
   const set = new Set<string>()
-  if (show.removeAds) {
-    set.add('ad')
-    set.add('intro')
-    set.add('outro')
-  }
+  if (show.removeAds) set.add('ad')
   if (show.removePromos) set.add('promo')
+  if (show.removeFluff) set.add('fluff')
   return set
 }
 
@@ -148,7 +176,14 @@ export async function processEpisode(episodeId: number): Promise<void> {
     // 3. Detect ads.
     setStatus(episodeId, 'detecting')
     const prevAds = previousEpisodeAds(show, episode)
-    const detected = await detectAds(transcript, settings, prevAds, show.detectionGuidance)
+    const prevTranscripts = previousEpisodeTranscripts(show, episode)
+    const detected = await detectAds(
+      transcript,
+      settings,
+      prevAds,
+      show.detectionGuidance,
+      prevTranscripts,
+    )
 
     // Replace any prior ad records for this episode.
     db.delete(ads).where(eq(ads.episodeId, episodeId)).run()

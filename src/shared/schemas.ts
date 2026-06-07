@@ -32,7 +32,11 @@ export type Transcript = z.infer<typeof TranscriptSchema>
  * those back to exact start/end times from the whisper transcript ourselves.
  * ------------------------------------------------------------------ */
 
-export const AD_LABELS = ['ad', 'promo', 'intro', 'outro'] as const
+// "fluff" = recurring show scaffolding (the standard open/intro spiel, the
+// "here's how this podcast works" explainer, the sign-off, credits, station IDs
+// and other repeated housekeeping). It is neither editorial content nor a
+// third-party ad, so it gets its own label and its own per-show cut toggle.
+export const AD_LABELS = ['ad', 'promo', 'fluff'] as const
 export type AdLabelValue = (typeof AD_LABELS)[number]
 
 export const DetectedSegmentSchema = z.object({
@@ -40,22 +44,19 @@ export const DetectedSegmentSchema = z.object({
     .number()
     .int()
     .nonnegative()
-    .describe('id of the first transcript segment in this ad'),
+    .describe('id of the first transcript segment in this span'),
   endSegmentId: z
     .number()
     .int()
     .nonnegative()
-    .describe('id of the last transcript segment in this ad (inclusive)'),
+    .describe('id of the last transcript segment in this span (inclusive)'),
   label: z.enum(AD_LABELS),
   company: z
     .string()
     .nullable()
     .optional()
     .describe('Advertiser/company name ONLY if named in THIS transcript, else null'),
-  reason: z
-    .string()
-    .optional()
-    .describe('Brief explanation of why this span is an ad/promo/intro/outro'),
+  reason: z.string().optional().describe('Brief explanation of why this span is an ad/promo/fluff'),
   confidence: z
     .enum(['low', 'medium', 'high'])
     .optional()
@@ -134,5 +135,6 @@ export const UpdateShowSchema = z.object({
   episodeLimit: z.number().int().positive().optional(),
   removeAds: z.boolean().optional(),
   removePromos: z.boolean().optional(),
+  removeFluff: z.boolean().optional(),
   detectionGuidance: z.string().max(4000).nullable().optional(),
 })

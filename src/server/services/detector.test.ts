@@ -1,7 +1,23 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { extractJson, mergeOverlaps, mapDetectionsToAds } from './detector.js'
+import {
+  extractJson,
+  mergeOverlaps,
+  mapDetectionsToAds,
+  addUncoveredFluff,
+  reclassifyFluff,
+  type DetectedAd,
+} from './detector.js'
 import type { DetectedSegment, TranscriptSegment } from '../../shared/schemas.js'
+
+const fluff = (text: string): DetectedAd => ({
+  startTime: 0,
+  endTime: 30,
+  label: 'fluff',
+  company: null,
+  adText: text,
+  reason: 'recurs',
+})
 
 const segs: TranscriptSegment[] = [
   { id: 0, start: 0, end: 5, text: 'Welcome to the show.' },
@@ -43,10 +59,54 @@ test('mergeOverlaps: merges overlapping and adjacent id ranges', () => {
 
 test('mergeOverlaps: keeps disjoint ranges separate', () => {
   const input: DetectedSegment[] = [
-    { startSegmentId: 0, endSegmentId: 0, label: 'intro', company: null, reason: 'a' },
-    { startSegmentId: 3, endSegmentId: 3, label: 'outro', company: null, reason: 'b' },
+    { startSegmentId: 0, endSegmentId: 0, label: 'fluff', company: null, reason: 'a' },
+    { startSegmentId: 3, endSegmentId: 3, label: 'ad', company: null, reason: 'b' },
   ]
   assert.equal(mergeOverlaps(input).length, 2)
+})
+
+test('addUncoveredFluff: adds recurring spans the LLM ignored as fluff', () => {
+  const detected: DetectedSegment[] = [
+    { startSegmentId: 10, endSegmentId: 12, label: 'ad', company: 'Acme', reason: 'x' },
+  ]
+  const recurring = [
+    { startSegmentId: 0, endSegmentId: 3, text: 'recurring open' }, // untouched → added
+    { startSegmentId: 11, endSegmentId: 14, text: 'overlaps the ad' }, // overlaps → skipped
+  ]
+  const out = addUncoveredFluff(detected, recurring)
+  assert.equal(out.length, 2)
+  const fluff = out.find((d) => d.label === 'fluff')!
+  assert.equal(fluff.startSegmentId, 0)
+  assert.equal(fluff.endSegmentId, 3)
+})
+
+test('reclassifyFluff: a sponsor read swept into fluff becomes an ad', () => {
+  const out = reclassifyFluff(fluff('Stay with us. This message comes from Progressive Insurance.'))
+  assert.equal(out.label, 'ad')
+})
+
+test('reclassifyFluff: a cross-promo swept into fluff becomes a promo', () => {
+  const out = reclassifyFluff(
+    fluff("Every episode of It's Been a Minute. Follow it wherever you get your podcasts."),
+  )
+  assert.equal(out.label, 'promo')
+})
+
+test('reclassifyFluff: a URL with a path marks an ad', () => {
+  assert.equal(reclassifyFluff(fluff('Support for NPR. goodrx.com/upfirst')).label, 'ad')
+})
+
+test('reclassifyFluff: genuine scaffolding stays fluff', () => {
+  assert.equal(
+    reclassifyFluff(fluff("I'm Steve with A. Martinez, this is Up First.")).label,
+    'fluff',
+  )
+  assert.equal(reclassifyFluff(fluff('Our director is Christopher Thomas.')).label, 'fluff')
+})
+
+test('reclassifyFluff: non-fluff labels pass through untouched', () => {
+  const ad: DetectedAd = { ...fluff('this message comes from x'), label: 'ad' }
+  assert.equal(reclassifyFluff(ad).label, 'ad')
 })
 
 test('mapDetectionsToAds: maps ids to exact times and joins text', () => {

@@ -21,14 +21,7 @@ const CATS = [
     stroke: 'stroke-warning',
     bg: 'bg-warning',
   },
-  { key: 'intro', label: 'Intros', fill: 'fill-info', stroke: 'stroke-info', bg: 'bg-info' },
-  {
-    key: 'outro',
-    label: 'Outros',
-    fill: 'fill-brand-400',
-    stroke: 'stroke-brand-400',
-    bg: 'bg-brand-400',
-  },
+  { key: 'fluff', label: 'Fluff', fill: 'fill-info', stroke: 'stroke-info', bg: 'bg-info' },
 ] as const
 
 type CatKey = (typeof CATS)[number]['key']
@@ -63,12 +56,12 @@ export function ShowStats({ episodes, ads, className }: ShowStatsProps) {
     return episodes
       .filter((e) => e.status === 'done' && e.duration && e.duration > 0)
       .map((e) => {
-        const removed: Breakdown = { content: 0, ad: 0, promo: 0, intro: 0, outro: 0 }
+        const removed: Breakdown = { content: 0, ad: 0, promo: 0, fluff: 0 }
         for (const a of adsByEp.get(e.id) ?? []) {
           removed[a.label as AdLabel] += Math.max(0, a.endTime - a.startTime)
         }
         const total = e.duration as number
-        const cut = removed.ad + removed.promo + removed.intro + removed.outro
+        const cut = removed.ad + removed.promo + removed.fluff
         removed.content = Math.max(0, total - cut)
         return {
           id: e.id,
@@ -81,7 +74,7 @@ export function ShowStats({ episodes, ads, className }: ShowStatsProps) {
   }, [episodes, ads])
 
   const totals = useMemo<Breakdown>(() => {
-    const t: Breakdown = { content: 0, ad: 0, promo: 0, intro: 0, outro: 0 }
+    const t: Breakdown = { content: 0, ad: 0, promo: 0, fluff: 0 }
     for (const p of points) for (const c of CATS) t[c.key] += p[c.key]
     return t
   }, [points])
