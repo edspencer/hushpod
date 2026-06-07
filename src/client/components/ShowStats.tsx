@@ -9,9 +9,9 @@ const CATS = [
   {
     key: 'content',
     label: 'Content',
-    fill: 'fill-slate-500',
-    stroke: 'stroke-slate-500',
-    bg: 'bg-slate-500',
+    fill: 'fill-stone-500',
+    stroke: 'stroke-stone-500',
+    bg: 'bg-stone-500',
   },
   { key: 'ad', label: 'Ads', fill: 'fill-danger', stroke: 'stroke-danger', bg: 'bg-danger' },
   {
