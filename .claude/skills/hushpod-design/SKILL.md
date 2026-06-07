@@ -1,9 +1,9 @@
 ---
 name: hushpod-design
-description: HushPod's visual design system — "warm editorial". READ THIS BEFORE building or changing any UI (components, pages, colors, type, layout). It defines the identity that keeps the app from looking like generic AI-generated output. Tokens give exact values; the prose tells you why and how to apply them.
+description: HushPod's visual design system — "newspaper" (red / white / blue editorial). READ THIS BEFORE building or changing any UI (components, pages, colors, type, layout). It defines the identity that keeps the app from looking like generic AI-generated output. Tokens give exact values; the prose tells you why and how to apply them.
 ---
 
-# HushPod Design System — Warm Editorial
+# HushPod Design System — Red / White / Blue Editorial
 
 > Tokens give you exact values. The prose tells you why those values exist and how to apply them. When in doubt, follow the prose.
 
@@ -11,52 +11,54 @@ Source of truth for the actual values: `src/client/index.css` (`@theme` + `.dark
 
 ## 1. Overview
 
-HushPod is a calm, self-hosted reading-room for your podcasts. The feel is **printed magazine, not SaaS dashboard**: warm paper, ink, a single confident terracotta accent, and an expressive serif for headlines. Light "paper" is the default; dark is a warm "espresso", never cold black.
+HushPod reads like a **broadsheet newspaper**: a crisp white page, deep-navy ink, an expressive serif for headlines, and a two-color accent system — **navy blue** (primary) with **flag red** (highlight). Light "paper" is the default; dark is a deep **navy**, never cold black.
 
-Adjectives: warm, editorial, considered, quiet, tactile. **Not**: techy, neon, corporate, purple, glassy.
+Adjectives: editorial, crisp, civic, considered. **Not**: techy, neon, gradient-y, purple/indigo "AI default", glassy.
 
 ## 2. Colors
 
-A dominant warm-neutral canvas + one sharp accent (≈ 60/30/10). Earthy semantics live inside that world. Tokens (light → dark):
+A clean white/navy canvas with **two** accents — navy blue carries the brand, flag red highlights. Earthy-but-saturated semantics round it out. Tokens (light → dark):
 
-| Token                               | Light                        | Dark               | Use                                            |
-| ----------------------------------- | ---------------------------- | ------------------ | ---------------------------------------------- |
-| `bg`                                | `#faf6ee` paper              | `#17130f` espresso | app canvas                                     |
-| `surface`                           | `#fffdf8`                    | `#1f1a15`          | cards, raised panels                           |
-| `surface-2`                         | `#f1eadc`                    | `#29221b`          | insets, tracks, hover fills                    |
-| `border`                            | `#e6ddcc`                    | `#382f26`          | hairlines, dividers                            |
-| `muted`                             | `#786d5b`                    | `#a59a86`          | secondary text, meta                           |
-| `fg`                                | `#232019` warm ink           | `#f1e9da` cream    | primary text                                   |
-| `brand-500`                         | `#bd5836` terracotta         | (same)             | primary actions, accents                       |
-| `brand-400`/`300`                   | dark terracotta              | lifted terracotta  | **link/accent text** (mode-tuned for contrast) |
-| `success`/`warning`/`danger`/`info` | olive / ochre / brick / teal | lifted variants    | status + ad labels                             |
+| Token                      | Light               | Dark           | Use                                            |
+| -------------------------- | ------------------- | -------------- | ---------------------------------------------- |
+| `bg`                       | `#f7f8fa` white     | `#0b1626` navy | app canvas                                     |
+| `surface`                  | `#ffffff`           | `#122138`      | cards, raised panels                           |
+| `surface-2`                | `#eef1f6`           | `#1a2c47`      | insets, tracks, hover fills                    |
+| `border`                   | `#d8dee7`           | `#28395a`      | hairlines, dividers                            |
+| `muted`                    | `#5a6678`           | `#94a4bd`      | secondary text, meta                           |
+| `fg`                       | `#0f1b2e` navy ink  | `#eef3fb`      | primary text                                   |
+| `brand-500`                | `#1e4488` navy blue | lifted         | primary actions, links, accents                |
+| `brand-400`/`300`          | navy blue           | lifted blue    | **link/accent text** (mode-tuned for contrast) |
+| `danger`                   | `#c8102e` flag red  | `#e85d70`      | the red accent: ad label, errors, "removed"    |
+| `success`/`warning`/`info` | green / gold / teal | lifted         | status + ad labels                             |
 
 Rules:
 
-- **Refined ink, never `#000`.** `fg` is a warm near-black. Pure black/white are banned.
-- **One accent.** Terracotta (`brand-*`) is the only chromatic brand color. Don't introduce blues/purples/extra accents for decoration.
-- **Earthy semantics.** Ad-label + status colors map to: ad→`danger` (brick), promo→`warning` (ochre), intro→`info` (teal), outro→`brand-400` (terracotta), content→warm stone. Keep this mapping.
-- **Contrast.** Body/UI text ≥ 4.5:1; large/secondary ≥ 3:1. Accent _text_ uses `brand-300/400` (these are tuned per-mode); accent _fills_ (buttons) use `brand-500/600` with cream/white text.
+- **Two accents, no more.** Navy `brand-*` (blue) is primary; `danger` (flag red) is the highlight. Don't add a third chromatic accent, and never reintroduce purple/indigo.
+- **Refined ink, never `#000`/`#fff`.** `fg` is a deep navy; the canvas is an off-white.
+- **Semantic mapping (keep it):** ad→`danger` (red), promo→`warning` (gold), intro→`info` (teal), outro→`brand` (blue), content→warm stone. This is what makes the ad timeline read red/white/blue.
+- **Contrast.** Body/UI text ≥ 4.5:1; large/secondary ≥ 3:1. Accent _text_ uses `brand-300/400` and `danger` (tuned per-mode); accent _fills_ (buttons) use `brand-500/600` with white text.
 
 ## 3. Typography
 
-Three self-hosted families (Fontsource, offline-friendly — do **not** add Google-CDN font links):
+Four self-hosted families (Fontsource, offline-friendly — do **not** add Google-CDN font links):
 
-- **Display — Fraunces Variable** (`font-display`): all headings (`h1–h4` get it automatically) and any expressive number/stat. Soft, optical, editorial. Tight tracking (`-0.015em`).
-- **Text — Hanken Grotesk Variable** (`font-sans`, the default): body, labels, tables, controls. Warm, legible, not Inter.
-- **Numerals — JetBrains Mono Variable** (`font-mono`): timestamps, durations, byte sizes (use `tabular-nums`).
+- **Display — Fraunces Variable** (`font-display`): all headings (`h1–h4` get it automatically) + expressive stats. Tight tracking (`-0.015em`).
+- **Reading — Newsreader Variable** (`font-serif`): long-form prose — episode descriptions, transcripts, show blurbs. Set with `font-serif text-[15px] leading-7`. This is what makes it feel like a printed page.
+- **Text/UI — Hanken Grotesk Variable** (`font-sans`, the default): labels, tables, controls, nav.
+- **Numerals — JetBrains Mono Variable** (`font-mono`): timestamps, durations, sizes (with `tabular-nums`).
 
-**Banned fonts (the "AI-slop" tells): Inter, Roboto, Open Sans, Lato, Space Grotesk, system-ui as a brand choice.** Headlines should feel set, not typed — lean on Fraunces with size + weight contrast rather than many weights.
+**Banned fonts (the "AI-slop" tells): Inter, Roboto, Open Sans, Lato, Space Grotesk, system-ui as a brand choice.** Headlines should feel set, not typed.
 
 ## 4. Layout
 
 - Content column maxes at `max-w-6xl`, generous gutters (`px-4`), vertical rhythm in `space-y-6`.
-- Whitespace is a feature — let the paper breathe; don't fill every pixel.
-- Information-dense where it must be (episode rows, tables), airy everywhere else.
+- Whitespace is a feature — let the page breathe; don't fill every pixel.
+- Dense where it must be (episode rows, tables), airy everywhere else.
 
 ## 5. Elevation & Depth
 
-Quiet depth. Prefer **surface contrast over borders and over heavy shadows**: a `surface` card on `bg`, or `surface-2` inset, reads as separation. Shadows are subtle (`shadow-sm`), warm, never the default cold blue glow. No glassmorphism.
+Quiet depth. Prefer **surface contrast over borders and over heavy shadows**: a white `surface` card on the off-white `bg`, or `surface-2` inset, reads as separation. Shadows are subtle (`shadow-sm`), never a cold blue glow. No glassmorphism.
 
 ## 6. Shapes
 
@@ -64,24 +66,25 @@ Rounded but not pill-everything: `rounded-md`/`rounded-lg` for cards and control
 
 ## 7. Components
 
-- **Buttons** — primary = solid terracotta (`brand-500/600`) + cream text; secondary/outline = `border` on `surface`; ghost for tertiary. One primary action per view.
+- **Buttons** — primary = solid navy (`brand-500/600`) + white text; secondary/outline = `border` on `surface`; ghost for tertiary. One primary action per view.
 - **Cards** — `surface` + hairline `border`, `rounded-lg`, modest padding. Titles in Fraunces.
-- **Badges / status** — use the earthy semantic tints (`bg-danger/15 text-danger` etc.). Keep the ad-label color mapping.
+- **Badges / status** — earthy-saturated semantic tints (`bg-danger/15 text-danger` etc.). Keep the ad-label color mapping.
+- **Long-form** — descriptions/transcripts in `font-serif` (Newsreader), clamped with a measured "Show more".
 - **Tables / episode rows** — quiet hairlines, hover = `surface-2`; the whole row is the link.
-- **Timelines / charts** — earthy label palette; content = warm stone. Color carries meaning, not decoration.
-- **Motion** — restrained: short transitions on hover/active; at most one orchestrated, staggered reveal on a page load. No bouncing, no parallax.
+- **Timelines / charts** — the semantic palette (red/gold/teal/blue); content = warm stone. Color carries meaning, not decoration.
+- **Motion** — restrained: short transitions on hover/active; at most one orchestrated, staggered reveal on a page load. No bouncing/parallax.
 
 ## 8. Do's and Don'ts
 
 **Do**
 
 - Use semantic token utilities everywhere; let light/dark flow from `@theme` + `.dark`.
-- Set headlines in Fraunces; keep one terracotta accent; prefer surface contrast to borders/shadows.
+- Set headlines in Fraunces, long-form in Newsreader; keep the two-accent (navy + red) system; prefer surface contrast to borders/shadows.
 - Keep numerals in JetBrains Mono with `tabular-nums`.
 
 **Don't**
 
-- Don't hardcode hex in components. Don't add a second accent color or any purple/indigo/blue brand.
+- Don't hardcode hex in components. Don't add a third accent color, and never revert to a purple/indigo default.
 - Don't use Inter/Roboto/system as a brand font, or pure `#000`/`#fff`.
 - Don't reach for gradients-on-white, glassmorphism, neon, or heavy drop shadows.
 
@@ -94,4 +97,4 @@ Rounded but not pill-everything: `rounded-md`/`rounded-lg` for cards and control
 
 - The whole theme is token-driven, so a re-skin = edit `@theme`/`.dark` in `index.css`, not the components.
 - Fonts are bundled via `@fontsource-variable/*` imported in `main.tsx` — keep it that way (self-hosted, works offline).
-- After a visual change, build and look at it; verify both light and dark, and check text contrast on the warm backgrounds.
+- After a visual change, build and look at it; verify both light and dark, and check text contrast on both backgrounds.
