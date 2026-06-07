@@ -1,14 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AlertCircle, Calendar, ChevronDown, ChevronRight, Clock, Download } from 'lucide-react'
-import { Button, Card, CardContent, CardHeader, CardTitle, Spinner } from '@client/components/ui'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Spinner,
+  Tabs,
+} from '@client/components/ui'
 import { useEpisode } from '@client/lib/api'
 import type { EpisodeStatus } from '@client/lib/api'
 import { cn } from '@client/lib/cn'
 import { EpisodePlayer } from '@client/components/EpisodePlayer'
 import { ProcessingStatus } from '@client/components/ProcessingStatus'
+import { PipelineStepper } from '@client/components/PipelineStepper'
 import { EpisodeTimeline } from '@client/components/EpisodeTimeline'
 import { AdList } from '@client/components/AdList'
+
+const TABS = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'stats', label: 'Stats' },
+]
 
 const IN_FLIGHT: ReadonlySet<EpisodeStatus> = new Set([
   'pending',
@@ -53,6 +67,18 @@ export default function EpisodeDetail() {
     time: 0,
     version: 'clean',
   })
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const rawTab = searchParams.get('tab') ?? 'overview'
+  const tab = TABS.some((t) => t.value === rawTab) ? rawTab : 'overview'
+  const setTab = (value: string) =>
+    setSearchParams(
+      (prev) => {
+        prev.set('tab', value)
+        return prev
+      },
+      { replace: true },
+    )
 
   const inFlight = episode ? IN_FLIGHT.has(episode.status) : false
 
@@ -131,6 +157,7 @@ export default function EpisodeDetail() {
         {episode.description && <EpisodeDescription text={episode.description} />}
       </header>
 
+      {/* Always-visible status + reprocess */}
       <ProcessingStatus
         episodeId={episode.id}
         status={episode.status}
@@ -138,46 +165,60 @@ export default function EpisodeDetail() {
         retryCount={episode.retryCount}
       />
 
-      <EpisodeTimeline telemetry={episode.telemetry} />
+      {/* Tabs: Overview (player + segments) | Stats (pipeline + timing) */}
+      <div>
+        <Tabs items={TABS} value={tab} onValueChange={setTab} />
+        <div className="mt-6">
+          {tab === 'overview' &&
+            (notProcessed ? (
+              <Card>
+                <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+                  <AlertCircle className="h-8 w-8 text-muted" />
+                  <p className="text-sm font-medium text-fg">
+                    This episode hasn&apos;t been processed yet
+                  </p>
+                  <p className="max-w-md text-sm text-muted">
+                    Click <span className="font-medium text-fg">Process</span> above to download,
+                    transcribe, and remove ads. The player and detected segments will appear once
+                    processing completes.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                <EpisodePlayer
+                  episodeId={episode.id}
+                  cleanUrl={episode.audioCleanUrl}
+                  originalUrl={episode.audioOriginalUrl}
+                  fallbackDuration={episode.duration}
+                  ads={episode.ads}
+                  onActiveAdChange={setActiveAdId}
+                  onProgress={(time, version) => setPlayhead({ time, version })}
+                />
 
-      {notProcessed ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-            <AlertCircle className="h-8 w-8 text-muted" />
-            <p className="text-sm font-medium text-fg">
-              This episode hasn&apos;t been processed yet
-            </p>
-            <p className="max-w-md text-sm text-muted">
-              Click <span className="font-medium text-fg">Process</span> above to download,
-              transcribe, and remove ads. The player and detected segments will appear once
-              processing completes.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <EpisodePlayer
-            episodeId={episode.id}
-            cleanUrl={episode.audioCleanUrl}
-            originalUrl={episode.audioOriginalUrl}
-            fallbackDuration={episode.duration}
-            ads={episode.ads}
-            onActiveAdChange={setActiveAdId}
-            onProgress={(time, version) => setPlayhead({ time, version })}
-          />
+                <DownloadBar
+                  cleanUrl={episode.audioCleanUrl}
+                  originalUrl={episode.audioOriginalUrl}
+                />
 
-          <DownloadBar cleanUrl={episode.audioCleanUrl} originalUrl={episode.audioOriginalUrl} />
-
-          <AdList
-            ads={episode.ads}
-            originalDuration={episode.duration}
-            episodeId={episode.id}
-            hasTranscript={episode.hasTranscript}
-            activeAdId={activeAdId}
-            currentTime={playhead.version === 'original' ? playhead.time : null}
-          />
-        </>
-      )}
+                <AdList
+                  ads={episode.ads}
+                  originalDuration={episode.duration}
+                  episodeId={episode.id}
+                  hasTranscript={episode.hasTranscript}
+                  activeAdId={activeAdId}
+                  currentTime={playhead.version === 'original' ? playhead.time : null}
+                />
+              </div>
+            ))}
+          {tab === 'stats' && (
+            <div className="space-y-6">
+              <PipelineStepper status={episode.status} telemetry={episode.telemetry} />
+              <EpisodeTimeline telemetry={episode.telemetry} />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
