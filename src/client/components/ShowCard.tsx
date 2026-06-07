@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Podcast, ListMusic, Loader2 } from 'lucide-react'
+import { Podcast, ListMusic } from 'lucide-react'
 import { Badge } from '@client/components/ui'
 import { cn } from '@client/lib/cn'
 import type { Show } from '@client/lib/api'
@@ -46,8 +46,8 @@ export function ShowCard({ show, processing = false }: ShowCardProps) {
           )}
         </div>
         {isProcessing && (
-          <div className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-medium text-white backdrop-blur">
-            <Loader2 className="h-3 w-3 animate-spin" />
+          <div className="absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-2 py-0.5 text-xs font-medium text-white">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
             Processing
           </div>
         )}

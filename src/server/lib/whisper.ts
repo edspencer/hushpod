@@ -1,10 +1,17 @@
 import { readFile, unlink } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { execFile } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { nodewhisper } from 'nodejs-whisper'
+import { WHISPER_CPP_PATH, MODEL_OBJECT } from 'nodejs-whisper/dist/constants.js'
 import { logger } from './logger.js'
 import { probeDuration, extractSliceWav } from './ffmpeg.js'
 import type { AppSettings, Transcript, TranscriptSegment } from '../../shared/schemas.js'
+
+const execFileAsync = promisify(execFile)
 
 const log = logger('whisper')
 
@@ -78,7 +85,10 @@ export async function transcribe(
     if (chunkDur <= 0.5) break
     const isLast = chunkStart + CHUNK_SEC >= duration
 
-    const slice = join(tmpdir(), `hushpod-${process.pid}-${chunkStart}.wav`)
+    // Unique per slice: concurrent transcriptions share one process, so a name
+    // keyed only on pid+chunkStart collides (both episodes write "...-0.wav" and
+    // read each other's .json), scrambling transcripts. A UUID makes it safe.
+    const slice = join(tmpdir(), `hushpod-${randomUUID()}.wav`)
     await extractSliceWav(audioPath, chunkStart, chunkDur, slice)
     try {
       log.info(
@@ -149,26 +159,10 @@ async function transcribeRemote(
   return { segments: json.segments, language: json.language }
 }
 
-/** Local transcription via nodejs-whisper (whisper.cpp). Reads the emitted
- * <wav>.json (offsets are in milliseconds). */
-async function transcribeLocal(
+/** Read and map the <wav>.json whisper.cpp emits (offsets are in milliseconds). */
+async function readWhisperJson(
   wavPath: string,
-  settings: AppSettings,
 ): Promise<{ segments: RawSegment[]; language?: string }> {
-  // nodejs-whisper does process.chdir() into the whisper.cpp dir and does not
-  // restore it — capture and restore the cwd ourselves.
-  const cwd = process.cwd()
-  try {
-    await nodewhisper(wavPath, {
-      modelName: settings.whisperModel,
-      autoDownloadModelName: settings.whisperModel,
-      removeWavFileAfterTranscription: false,
-      whisperOptions: { outputInJson: true, language: 'en' },
-      logger: { log: () => {}, debug: () => {}, error: (...a) => log.error(String(a[0])) },
-    })
-  } finally {
-    process.chdir(cwd)
-  }
   try {
     const parsed = JSON.parse(await readFile(`${wavPath}.json`, 'utf8')) as {
       transcription?: Array<{ offsets?: { from: number; to: number }; text: string }>
@@ -182,4 +176,77 @@ async function transcribeLocal(
   } finally {
     await unlink(`${wavPath}.json`).catch(() => {})
   }
+}
+
+/** Locate the whisper-cli binary inside the nodejs-whisper install (absolute). */
+function whisperBinary(): string | null {
+  const exe = process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
+  const candidates = [
+    join(WHISPER_CPP_PATH, 'build', 'bin', exe),
+    join(WHISPER_CPP_PATH, 'build', 'bin', 'Release', exe),
+    join(WHISPER_CPP_PATH, 'build', exe),
+    join(WHISPER_CPP_PATH, exe),
+  ]
+  return candidates.find((p) => existsSync(p)) ?? null
+}
+
+/** Absolute path to a model's .bin inside the whisper.cpp models dir. */
+function modelFile(model: string): string {
+  const name = (MODEL_OBJECT as Record<string, string>)[model] ?? `ggml-${model}.bin`
+  return join(WHISPER_CPP_PATH, 'models', name)
+}
+
+// First-run bootstrap (build the binary / download the model) goes through the
+// upstream wrapper, which mutates process.cwd() — so we serialize those calls
+// and restore the cwd. Once the binary + model exist, transcription uses the
+// parallel-safe direct path below and never touches this again.
+let bootstrapLock: Promise<unknown> = Promise.resolve()
+
+function bootstrapTranscribe(
+  wavPath: string,
+  settings: AppSettings,
+): Promise<{ segments: RawSegment[]; language?: string }> {
+  const run = bootstrapLock.then(async () => {
+    const cwd = process.cwd()
+    try {
+      await nodewhisper(wavPath, {
+        modelName: settings.whisperModel,
+        autoDownloadModelName: settings.whisperModel,
+        removeWavFileAfterTranscription: false,
+        whisperOptions: { outputInJson: true, language: 'en' },
+        logger: { log: () => {}, debug: () => {}, error: (...a) => log.error(String(a[0])) },
+      })
+    } finally {
+      process.chdir(cwd)
+    }
+    return readWhisperJson(wavPath)
+  })
+  bootstrapLock = run.catch(() => {})
+  return run
+}
+
+/**
+ * Local transcription via whisper.cpp. We invoke the whisper-cli binary directly
+ * with ABSOLUTE model/audio paths, so — unlike the nodejs-whisper wrapper, which
+ * process.chdir()s into the whisper.cpp dir to use a relative model path — there
+ * is no process-global cwd mutation. That makes concurrent transcription safe,
+ * so transcribeConcurrency can exceed 1. The wrapper is only used to bootstrap a
+ * fresh install (build the binary / download the model).
+ */
+async function transcribeLocal(
+  wavPath: string,
+  settings: AppSettings,
+): Promise<{ segments: RawSegment[]; language?: string }> {
+  const bin = whisperBinary()
+  const model = modelFile(settings.whisperModel)
+  if (!bin || !existsSync(model)) {
+    log.info('whisper binary/model not found — bootstrapping via wrapper (one-time)')
+    return bootstrapTranscribe(wavPath, settings)
+  }
+
+  // Absolute -m and -f, no chdir → parallel-safe. Writes <wavPath>.json.
+  await execFileAsync(bin, ['-l', 'en', '-oj', '-m', model, '-f', wavPath], {
+    maxBuffer: 64 * 1024 * 1024,
+  })
+  return readWhisperJson(wavPath)
 }
