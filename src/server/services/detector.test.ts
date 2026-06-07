@@ -7,6 +7,7 @@ import {
   addUncoveredFluff,
   reclassifyFluff,
   costUsd,
+  splitAdPods,
   type DetectedAd,
 } from './detector.js'
 import type { DetectedSegment, TranscriptSegment } from '../../shared/schemas.js'
@@ -108,6 +109,55 @@ test('reclassifyFluff: genuine scaffolding stays fluff', () => {
 test('reclassifyFluff: non-fluff labels pass through untouched', () => {
   const ad: DetectedAd = { ...fluff('this message comes from x'), label: 'ad' }
   assert.equal(reclassifyFluff(ad).label, 'ad')
+})
+
+test('splitAdPods: splits a stacked pod into one ad per sponsor', () => {
+  const podSegs: TranscriptSegment[] = [
+    { id: 0, start: 0, end: 5, text: 'Stay with us.' },
+    {
+      id: 1,
+      start: 5,
+      end: 12,
+      text: 'This message comes from Charles Schwab. Learn more at schwab.com.',
+    },
+    { id: 2, start: 12, end: 20, text: 'And brought to you by LinkedIn. Go to LinkedIn.com/show.' },
+    { id: 3, start: 20, end: 25, text: 'Back to the show.' }, // outside the span
+  ]
+  const ad: DetectedAd = {
+    startTime: 0,
+    endTime: 20,
+    label: 'ad',
+    company: 'Charles Schwab',
+    adText: 'x',
+    reason: '',
+  }
+  const out = splitAdPods([ad], podSegs)
+  assert.equal(out.length, 2)
+  assert.equal(out[0]!.company, 'Charles Schwab')
+  assert.equal(out[0]!.startTime, 0)
+  assert.equal(out[1]!.company, 'LinkedIn')
+  assert.equal(out[1]!.startTime, 12)
+})
+
+test('splitAdPods: leaves a single-sponsor ad and fluff untouched', () => {
+  const one: TranscriptSegment[] = [
+    { id: 0, start: 0, end: 8, text: 'This message comes from Acme. acme.com.' },
+  ]
+  const ad: DetectedAd = {
+    startTime: 0,
+    endTime: 8,
+    label: 'ad',
+    company: 'Acme',
+    adText: 'x',
+    reason: '',
+  }
+  assert.equal(splitAdPods([ad], one).length, 1)
+  const fluff: DetectedAd = { ...ad, label: 'fluff' }
+  // even with two frames, fluff is never split
+  const two = [
+    { id: 0, start: 0, end: 8, text: 'this message comes from x and brought to you by y' },
+  ]
+  assert.equal(splitAdPods([fluff], two).length, 1)
 })
 
 test('costUsd: prices cloud models, free for local/unknown', () => {

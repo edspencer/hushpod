@@ -207,6 +207,8 @@ async function runDetect(id: number): Promise<void> {
     durationMs: Date.now() - tDetect,
     data: {
       ads: detected.length,
+      model: settings.llmModel,
+      provider: settings.llmProvider,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       costUsd: costUsd(settings.llmModel, usage.inputTokens, usage.outputTokens),

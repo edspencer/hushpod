@@ -39,6 +39,7 @@ const FACT_KEYS = [
   'bytes',
   'segments',
   'model',
+  'provider',
   'ads',
   'inputTokens',
   'outputTokens',

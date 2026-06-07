@@ -292,8 +292,11 @@ export async function detectAds(
   usage.inputTokens += vUsage.inputTokens
   usage.outputTokens += vUsage.outputTokens
   const reconciled = kept.map(reclassifyFluff)
-  log.info(`detected ${mapped.length} segment(s); kept ${kept.length} after verification`)
-  return { ads: reconciled, usage }
+  const split = splitAdPods(reconciled, segs)
+  log.info(
+    `detected ${mapped.length} segment(s); ${kept.length} kept; ${split.length} after pod-splitting`,
+  )
+  return { ads: split, usage }
 }
 
 // Recurring sponsor reads and cross-promos repeat across episodes too, so
@@ -310,6 +313,71 @@ const AD_CUES =
 export function reclassifyFluff(ad: DetectedAd): DetectedAd {
   if (ad.label !== 'fluff') return ad
   return AD_CUES.test(ad.adText ?? '') ? { ...ad, label: 'ad' } : ad
+}
+
+// Sponsor-read opener phrases — each marks the start of a distinct sponsor read.
+// Ad breaks stack several sponsors back-to-back and every LLM tends to collapse
+// them into one span; these frames let us split deterministically.
+const SPONSOR_FRAME =
+  /\b(this message comes from|support for [\w ,'-]{0,40}?comes? from|support for [\w ,'-]{0,60}?and the following message come from|(?:this|today'?s) episode is (?:sponsored by|brought to you by|presented by)|brought to you by|sponsored by)\b/i
+
+/** Best-effort sponsor name from a frame line, e.g. "...comes from Charles Schwab." */
+function companyFromFrame(text: string): string | null {
+  // The name runs until the first period/comma — so the char classes exclude '.'
+  // to avoid swallowing the following sentence ("Schwab. Learn more at…").
+  const m = text.match(
+    /\b(?:comes? from|brought to you by|sponsored by|presented by|message come from)\s+(?:npr sponsor\s+|our sponsor,?\s+)?([A-Za-z][\w&'-]*(?:\s+[A-Za-z0-9][\w&'-]*){0,3})/i,
+  )
+  return m ? m[1]!.trim() || null : null
+}
+
+/**
+ * Split a stacked ad pod into one ad per sponsor (pure, deterministic). The LLM
+ * reliably finds the ad BREAK but collapses 3–5 back-to-back sponsors into one
+ * span; sponsor reads have a regular opener ("this message comes from X",
+ * "brought to you by X"), so we split on those frames and read each sponsor's
+ * name from its frame. Spans with 0–1 frames are left untouched — we never
+ * over-split. Only "ad" spans are considered (fluff/scaffolding passes through).
+ */
+export function splitAdPods(
+  detected: DetectedAd[],
+  segments: Transcript['segments'],
+): DetectedAd[] {
+  const out: DetectedAd[] = []
+  for (const ad of detected) {
+    if (ad.label !== 'ad') {
+      out.push(ad)
+      continue
+    }
+    const inSpan = segments.filter(
+      (s) => s.start >= ad.startTime - 0.01 && s.end <= ad.endTime + 0.01,
+    )
+    const frames: { index: number; company: string | null }[] = []
+    inSpan.forEach((s, i) => {
+      if (SPONSOR_FRAME.test(s.text)) frames.push({ index: i, company: companyFromFrame(s.text) })
+    })
+    if (inSpan.length === 0 || frames.length <= 1) {
+      out.push(ad)
+      continue
+    }
+    // First sub-ad runs from the span start; each later frame opens a new one.
+    const starts = [0, ...frames.slice(1).map((f) => f.index)]
+    for (let k = 0; k < starts.length; k++) {
+      const lo = starts[k]!
+      const hi = (k + 1 < starts.length ? starts[k + 1]! : inSpan.length) - 1
+      const sub = inSpan.slice(lo, hi + 1)
+      if (sub.length === 0) continue
+      out.push({
+        ...ad,
+        startTime: sub[0]!.start,
+        endTime: sub[sub.length - 1]!.end,
+        adText: sub.map((s) => s.text).join(' '),
+        company: frames[k]!.company ?? ad.company,
+        reason: 'sponsor read (split from ad pod)',
+      })
+    }
+  }
+  return out
 }
 
 /** Add recurring spans the LLM didn't touch as "fluff". A recurring span is

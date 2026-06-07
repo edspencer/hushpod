@@ -38,6 +38,7 @@ const STAGES: {
     facts: (t) => {
       if (t.ads == null) return null
       const parts = [`${t.ads} segment${t.ads === 1 ? '' : 's'} found`]
+      if (t.model) parts.push(t.model)
       const tok = (t.inputTokens ?? 0) + (t.outputTokens ?? 0)
       if (tok) parts.push(`${formatTokens(tok)} tok`)
       if (t.costUsd != null) parts.push(formatUsd(t.costUsd))

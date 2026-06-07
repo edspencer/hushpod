@@ -116,6 +116,7 @@ export interface StageTelemetry {
   bytes?: number
   segments?: number
   model?: string
+  provider?: string
   ads?: number
   inputTokens?: number
   outputTokens?: number

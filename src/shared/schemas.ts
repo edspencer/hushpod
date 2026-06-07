@@ -85,7 +85,8 @@ export const StageTelemetrySchema = z
     ms: z.number(),
     bytes: z.number(), // download
     segments: z.number(), // transcribe
-    model: z.string(), // transcribe
+    model: z.string(), // transcribe (whisper) or detect (LLM)
+    provider: z.string(), // detect (LLM) — e.g. anthropic, ollama
     ads: z.number(), // detect
     inputTokens: z.number(), // detect (LLM)
     outputTokens: z.number(), // detect (LLM)
