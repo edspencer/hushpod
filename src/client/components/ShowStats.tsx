@@ -130,7 +130,9 @@ export function ShowStats({ episodes, ads, className }: ShowStatsProps) {
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs font-medium text-muted">Breakdown over time</div>
+          <div className="text-xs font-medium text-muted">
+            Composition over time (% of each episode)
+          </div>
           <StackedArea points={points} />
         </div>
       </CardContent>
@@ -212,16 +214,18 @@ function StackedArea({ points }: { points: EpisodePoint[] }) {
   // A single episode can't form an area; duplicate it into a flat full-width band.
   const series = points.length === 1 ? [points[0]!, points[0]!] : points
   const n = series.length
-  const maxY = Math.max(...series.map((s) => s.total), 1)
+
+  // Normalize each episode to 100% so the chart shows composition, not length.
+  const frac = (s: EpisodePoint, key: CatKey) => (s.total > 0 ? s[key] / s.total : 0)
 
   const x = (i: number) => padL + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW)
-  const y = (v: number) => padT + innerH - (v / maxY) * innerH
+  const y = (v: number) => padT + innerH - v * innerH // v is a fraction 0..1
 
   const areas = CATS.map((c, k) => {
     const pts = series.map((s, i) => {
-      // base = sum of all categories stacked below this one for this episode
-      const b = CATS.slice(0, k).reduce((sum, pc) => sum + s[pc.key], 0)
-      const top = b + s[c.key]
+      // base = stacked fraction of all categories below this one for this episode
+      const b = CATS.slice(0, k).reduce((sum, pc) => sum + frac(s, pc.key), 0)
+      const top = b + frac(s, c.key)
       return { x: x(i), yTop: y(top), yBase: y(b) }
     })
     const top = pts.map((p) => `${p.x.toFixed(1)},${p.yTop.toFixed(1)}`).join(' ')
@@ -232,7 +236,7 @@ function StackedArea({ points }: { points: EpisodePoint[] }) {
     return { c, points: `${top} ${bottom}` }
   })
 
-  const gridYs = [0, maxY / 2, maxY]
+  const gridYs = [0, 0.5, 1]
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-44 w-full" preserveAspectRatio="none">
@@ -247,7 +251,7 @@ function StackedArea({ points }: { points: EpisodePoint[] }) {
             strokeWidth="0.5"
           />
           <text x={padL} y={y(g) - 2} className="fill-muted" fontSize="8">
-            {Math.round(g / 60)}m
+            {Math.round(g * 100)}%
           </text>
         </g>
       ))}
