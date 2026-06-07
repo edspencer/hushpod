@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AlertCircle, Calendar, ChevronRight, Clock, Download } from 'lucide-react'
+import { AlertCircle, Calendar, ChevronDown, ChevronRight, Clock, Download } from 'lucide-react'
 import { Button, Card, CardContent, CardHeader, CardTitle, Spinner } from '@client/components/ui'
 import { useEpisode } from '@client/lib/api'
 import type { EpisodeStatus } from '@client/lib/api'
@@ -127,9 +127,7 @@ export default function EpisodeDetail() {
             {fmtDuration(episode.duration)}
           </span>
         </div>
-        {episode.description && (
-          <p className="max-w-3xl text-sm leading-relaxed text-fg/80">{episode.description}</p>
-        )}
+        {episode.description && <EpisodeDescription text={episode.description} />}
       </header>
 
       <ProcessingStatus
@@ -176,6 +174,46 @@ export default function EpisodeDetail() {
             currentTime={playhead.version === 'original' ? playhead.time : null}
           />
         </>
+      )}
+    </div>
+  )
+}
+
+function EpisodeDescription({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const [clampable, setClampable] = useState(false)
+  const ref = useRef<HTMLParagraphElement>(null)
+
+  // Detect whether the (clamped) description actually overflows, so the toggle
+  // only appears when there's more to show. Re-checks on width changes.
+  useEffect(() => {
+    const el = ref.current
+    if (!el || expanded) return
+    const check = () => setClampable(el.scrollHeight > el.clientHeight + 1)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [text, expanded])
+
+  return (
+    <div className="space-y-1">
+      <p
+        ref={ref}
+        className={cn('text-sm leading-relaxed text-fg/80', !expanded && 'line-clamp-5')}
+      >
+        {text}
+      </p>
+      {clampable && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="inline-flex items-center gap-1 text-xs font-medium text-brand-400 hover:underline"
+          aria-expanded={expanded}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+          <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
+        </button>
       )}
     </div>
   )
