@@ -181,6 +181,16 @@ test('mapDetectionsToAds: maps ids to exact times and joins text', () => {
   assert.equal(ads[0]!.adText, 'This episode is sponsored by Acme. Acme makes great widgets.')
 })
 
+test('mapDetectionsToAds: drops "content" spans the model emitted', () => {
+  const detected: DetectedSegment[] = [
+    { startSegmentId: 1, endSegmentId: 2, label: 'ad', company: 'Acme', reason: 'sponsor' },
+    { startSegmentId: 3, endSegmentId: 3, label: 'content', company: null, reason: 'editorial' },
+  ]
+  const ads = mapDetectionsToAds(detected, segs)
+  assert.equal(ads.length, 1)
+  assert.equal(ads[0]!.label, 'ad')
+})
+
 test('mapDetectionsToAds: drops out-of-range ids', () => {
   const detected: DetectedSegment[] = [
     { startSegmentId: 99, endSegmentId: 100, label: 'ad', company: null, reason: 'hallucinated' },

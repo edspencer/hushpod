@@ -43,6 +43,13 @@ export type Transcript = z.infer<typeof TranscriptSchema>
 export const AD_LABELS = ['ad', 'fluff'] as const
 export type AdLabelValue = (typeof AD_LABELS)[number]
 
+// The model is asked for three categories (content/ad/fluff) but only ad+fluff
+// are stored. Some models (e.g. Claude) sometimes emit a "content" span to mark
+// editorial explicitly — so we ACCEPT it in the LLM-output schema (otherwise one
+// stray label fails generateObject and errors the whole episode) and drop those
+// spans downstream. Stored labels remain AD_LABELS.
+export const DETECTION_LABELS = ['ad', 'fluff', 'content'] as const
+
 export const DetectedSegmentSchema = z.object({
   startSegmentId: z
     .number()
@@ -54,7 +61,7 @@ export const DetectedSegmentSchema = z.object({
     .int()
     .nonnegative()
     .describe('id of the last transcript segment in this span (inclusive)'),
-  label: z.enum(AD_LABELS),
+  label: z.enum(DETECTION_LABELS),
   company: z
     .string()
     .nullable()

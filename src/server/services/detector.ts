@@ -210,7 +210,7 @@ async function detectWindow(
     log.warn(`generateObject failed, trying repair fallback: ${(err as Error).message}`)
     const res = await generateText({
       model,
-      system: `${SYSTEM_PROMPT}\n\nRespond with ONLY a JSON object: {"segments":[{"startSegmentId":N,"endSegmentId":N,"label":"ad|fluff","company":string|null,"reason":string,"confidence":"low|medium|high"}]}. No prose, no markdown.`,
+      system: `${SYSTEM_PROMPT}\n\nRespond with ONLY a JSON object: {"segments":[{"startSegmentId":N,"endSegmentId":N,"label":"ad|fluff|content","company":string|null,"reason":string,"confidence":"low|medium|high"}]}. No prose, no markdown.`,
       prompt,
     })
     addUsage(usage, res.usage)
@@ -286,7 +286,10 @@ export async function detectAds(
     if (i + WINDOW_SEGMENTS >= segs.length) break
   }
 
-  const withFluff = addUncoveredFluff(raw, recurring)
+  // Drop any "content" spans the model emitted to mark editorial — they are
+  // never stored or cut; only ad/fluff continue down the pipeline.
+  const adFluff = raw.filter((d) => d.label !== 'content')
+  const withFluff = addUncoveredFluff(adFluff, recurring)
   const mapped = mapDetectionsToAds(withFluff, segs)
   const { kept, usage: vUsage } = await verifyDetections(mapped, settings, guidance)
   usage.inputTokens += vUsage.inputTokens
@@ -518,6 +521,7 @@ export function mapDetectionsToAds(
   const merged = mergeOverlaps(detected)
   const result: DetectedAd[] = []
   for (const d of merged) {
+    if (d.label === 'content') continue // editorial — never stored/cut
     const lo = Math.min(d.startSegmentId, d.endSegmentId)
     const hi = Math.max(d.startSegmentId, d.endSegmentId)
     const startSeg = byId.get(lo)
