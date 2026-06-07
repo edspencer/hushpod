@@ -1,13 +1,14 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertCircle, ChevronRight, Inbox, Megaphone } from 'lucide-react'
-import { Badge, Card, StatusBadge } from '@client/components/ui'
+import { Card, StatusBadge } from '@client/components/ui'
+import { SegmentTimeline } from '@client/components/SegmentTimeline'
 import type { Ad, Episode } from '@client/lib/api'
 import { cn } from '@client/lib/cn'
 
 export interface EpisodeListProps {
   episodes: Episode[]
-  /** Optional ads for the whole show, used to display per-episode ad counts. */
+  /** Optional ads for the whole show, used for per-episode counts + timelines. */
   ads?: Ad[]
   className?: string
 }
@@ -26,11 +27,7 @@ function formatDate(value: string | null): string {
   if (!value) return '—'
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 function sortEpisodes(episodes: Episode[]): Episode[] {
@@ -45,10 +42,12 @@ function sortEpisodes(episodes: Episode[]): Episode[] {
 export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
   const sorted = useMemo(() => sortEpisodes(episodes), [episodes])
 
-  const adCounts = useMemo(() => {
-    const map = new Map<number, number>()
+  const adsByEpisode = useMemo(() => {
+    const map = new Map<number, Ad[]>()
     for (const ad of ads ?? []) {
-      map.set(ad.episodeId, (map.get(ad.episodeId) ?? 0) + 1)
+      const list = map.get(ad.episodeId)
+      if (list) list.push(ad)
+      else map.set(ad.episodeId, [ad])
     }
     return map
   }, [ads])
@@ -69,116 +68,58 @@ export function EpisodeList({ episodes, ads, className }: EpisodeListProps) {
   }
 
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      {/* Desktop table */}
-      <div className="hidden md:block">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs text-muted">
-              <th className="px-4 py-2.5 font-medium">Episode</th>
-              <th className="px-4 py-2.5 font-medium">Published</th>
-              <th className="px-4 py-2.5 font-medium">Duration</th>
-              <th className="px-4 py-2.5 font-medium">Ads</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5" aria-label="Open" />
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((ep) => {
-              const count = adCounts.get(ep.id) ?? 0
-              return (
-                <tr
-                  key={ep.id}
-                  className="group border-b border-border last:border-0 transition-colors hover:bg-surface-2/60"
-                >
-                  <td className="max-w-0 px-4 py-3">
-                    <Link
-                      to={`/episodes/${ep.id}`}
-                      className="block truncate font-medium text-fg group-hover:text-brand-400"
-                      title={ep.title}
-                    >
-                      {ep.title}
-                    </Link>
-                    {ep.status === 'error' && ep.errorMessage && (
-                      <span className="mt-0.5 flex items-center gap-1 text-xs text-danger">
-                        <AlertCircle className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{ep.errorMessage}</span>
-                        {ep.retryCount > 0 && (
-                          <span className="text-muted">(retry {ep.retryCount})</span>
-                        )}
-                      </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted">
-                    {formatDate(ep.publishedAt)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted tabular-nums">
-                    {formatDuration(ep.duration)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted">
-                    {count > 0 ? (
-                      <span className="inline-flex items-center gap-1 tabular-nums">
-                        <Megaphone className="h-3.5 w-3.5" />
-                        {count}
-                      </span>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={ep.status} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      to={`/episodes/${ep.id}`}
-                      aria-label={`Open ${ep.title}`}
-                      className="inline-flex text-muted transition-colors hover:text-fg"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile cards */}
-      <ul className="divide-y divide-border md:hidden">
-        {sorted.map((ep) => {
-          const count = adCounts.get(ep.id) ?? 0
-          return (
-            <li key={ep.id}>
-              <Link
-                to={`/episodes/${ep.id}`}
-                className="flex flex-col gap-2 p-4 transition-colors hover:bg-surface-2/60"
+    <Card className={cn('divide-y divide-border overflow-hidden', className)}>
+      {sorted.map((ep) => {
+        const epAds = adsByEpisode.get(ep.id) ?? []
+        return (
+          <Link
+            key={ep.id}
+            to={`/episodes/${ep.id}`}
+            className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2/60"
+          >
+            <div className="min-w-0 flex-1">
+              {/* line 1 — title (gets the full row width) */}
+              <div
+                className="truncate text-sm font-medium text-fg group-hover:text-brand-400"
+                title={ep.title}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-medium text-fg">{ep.title}</span>
-                  <StatusBadge status={ep.status} />
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                  <span>{formatDate(ep.publishedAt)}</span>
-                  <span className="tabular-nums">{formatDuration(ep.duration)}</span>
-                  {count > 0 && (
-                    <span className="inline-flex items-center gap-1 tabular-nums">
-                      <Megaphone className="h-3 w-3" />
-                      {count} ads
-                    </span>
-                  )}
-                </div>
-                {ep.status === 'error' && ep.errorMessage && (
-                  <Badge variant="danger" className="self-start">
-                    <AlertCircle className="h-3 w-3" />
-                    {ep.errorMessage}
-                  </Badge>
+                {ep.title}
+              </div>
+
+              {/* line 2 — meta + inline segment timeline */}
+              <div className="mt-1 flex items-center gap-3 text-xs text-muted">
+                <span className="whitespace-nowrap">{formatDate(ep.publishedAt)}</span>
+                <span className="whitespace-nowrap tabular-nums">
+                  {formatDuration(ep.duration)}
+                </span>
+                {epAds.length > 0 && (
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums">
+                    <Megaphone className="h-3 w-3" />
+                    {epAds.length}
+                  </span>
                 )}
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
+                <SegmentTimeline
+                  ads={epAds}
+                  duration={ep.duration}
+                  className="ml-auto w-32 shrink-0 sm:w-48 md:w-64"
+                />
+              </div>
+
+              {/* error detail */}
+              {ep.status === 'error' && ep.errorMessage && (
+                <div className="mt-1 flex items-center gap-1 text-xs text-danger">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{ep.errorMessage}</span>
+                  {ep.retryCount > 0 && <span className="text-muted">(retry {ep.retryCount})</span>}
+                </div>
+              )}
+            </div>
+
+            <StatusBadge status={ep.status} className="shrink-0" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-colors group-hover:text-fg" />
+          </Link>
+        )
+      })}
     </Card>
   )
 }
