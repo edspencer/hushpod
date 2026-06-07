@@ -4,6 +4,7 @@ import { Button, Spinner } from '@client/components/ui'
 import { useShows, useStatus } from '@client/lib/api'
 import { GlobalStats } from '@client/components/GlobalStats'
 import { ShowCard } from '@client/components/ShowCard'
+import { ActivityFeed } from '@client/components/ActivityFeed'
 import { AddShowDialog } from '@client/components/AddShowDialog'
 
 export default function Dashboard() {
@@ -85,6 +86,12 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Recent activity — the persisted history behind the live queue. */}
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Activity</h2>
+        <ActivityFeed />
       </section>
 
       <AddShowDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />

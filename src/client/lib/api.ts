@@ -97,7 +97,9 @@ export interface AppSettings {
   llmApiKey: string
   llmModel: string
   checkIntervalMinutes: number
-  concurrency: number
+  downloadConcurrency: number
+  transcribeConcurrency: number
+  detectConcurrency: number
   crossfadeMs: number
   baseUrl: string
   enableTransitionDetection: boolean
@@ -111,13 +113,49 @@ export interface ShowWithEpisodes extends Show {
   episodes: Episode[]
 }
 
+export interface StageTelemetry {
+  startedAt?: number
+  endedAt?: number
+  ms?: number
+  bytes?: number
+  segments?: number
+  model?: string
+  ads?: number
+  removedSec?: number
+}
+
+export type TelemetryStage = 'download' | 'transcribe' | 'detect' | 'cut'
+
+export interface Telemetry {
+  discoveredAt?: number
+  stages: Partial<Record<TelemetryStage, StageTelemetry>>
+  doneAt?: number
+  totalMs?: number
+  attempts?: number
+  lastError?: { at: number; message: string; stage?: string }
+}
+
 export interface EpisodeDetail extends Episode {
   showSlug: string | null
   showTitle: string | null
   hasTranscript: boolean
+  telemetry: Telemetry
   audioCleanUrl: string | null
   audioOriginalUrl: string | null
   ads: Ad[]
+}
+
+export interface ActivityEvent {
+  id: number
+  type: string
+  at: string
+  durationMs: number | null
+  data: Record<string, unknown> | null
+  episodeId: number | null
+  showId: number | null
+  episodeTitle: string | null
+  showTitle: string | null
+  showSlug: string | null
 }
 
 export interface AddShowResponse {
@@ -132,8 +170,21 @@ export interface AdsStats {
   byLabel: { label: string; count: number }[]
 }
 
+export type QueueStage = 'download' | 'transcribe' | 'detect'
+
+export interface QueueItem {
+  id: number
+  status: EpisodeStatus
+  title: string
+  showId: number
+  showTitle: string
+  showSlug: string
+  stage: QueueStage
+  state: 'active' | 'queued'
+}
+
 export interface SystemStatus {
-  queue: { queued: number[]; active: number[] }
+  queue: { queued: number[]; active: number[]; items: QueueItem[] }
   episodes: Record<string, number>
 }
 
@@ -240,6 +291,9 @@ export const api = {
     request<AppSettings>('/api/settings', { method: 'PATCH', json: patch }),
 
   getStatus: (): Promise<SystemStatus> => request<SystemStatus>('/api/status'),
+
+  getEvents: (limit = 50): Promise<ActivityEvent[]> =>
+    request<ActivityEvent[]>(`/api/events?limit=${limit}`),
 }
 
 /* ------------------------------------------------------------------ */
@@ -257,6 +311,7 @@ export const queryKeys = {
   adsStats: ['ads', 'stats'] as const,
   settings: ['settings'] as const,
   status: ['status'] as const,
+  events: (limit: number) => ['events', limit] as const,
 }
 
 /* ------------------------------------------------------------------ */
@@ -331,6 +386,17 @@ export function useStatus(refetchInterval?: number): UseQueryResult<SystemStatus
   return useQuery({
     queryKey: queryKeys.status,
     queryFn: api.getStatus,
+    refetchInterval,
+  })
+}
+
+export function useEvents(
+  limit = 50,
+  refetchInterval?: number,
+): UseQueryResult<ActivityEvent[], Error> {
+  return useQuery({
+    queryKey: queryKeys.events(limit),
+    queryFn: () => api.getEvents(limit),
     refetchInterval,
   })
 }

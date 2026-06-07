@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real, unique } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, integer, text, real, unique, index } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 
 /**
@@ -50,6 +50,9 @@ export const episodes = sqliteTable(
     originalSize: integer('original_size'), // Bytes
     cleanSize: integer('clean_size'), // Bytes
     transcript: text('transcript'), // Full timestamped transcript (JSON)
+    // Derived per-episode telemetry rollup (JSON): stage timings + facts. Folded
+    // from the event log by emit(); see services/events.ts.
+    telemetry: text('telemetry'),
     status: text('status', {
       enum: ['pending', 'downloading', 'transcribing', 'detecting', 'cutting', 'done', 'error'],
     })
@@ -100,6 +103,31 @@ export const ads = sqliteTable('ads', {
 })
 
 /**
+ * Events — an append-only audit/telemetry log. Every pipeline stage boundary
+ * (and discovery) emits a row; the live dashboard queue is a real-time view of
+ * the same stream. episodeId/showId are nullable so the table can hold
+ * system-level events too. `data` is event-specific JSON.
+ */
+export const events = sqliteTable(
+  'events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    episodeId: integer('episode_id').references(() => episodes.id, { onDelete: 'cascade' }),
+    showId: integer('show_id').references(() => shows.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // e.g. 'transcribe.finished', 'episode.error'
+    at: integer('at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    durationMs: integer('duration_ms'), // for *.finished stage events
+    data: text('data'), // event-specific JSON
+  },
+  (table) => ({
+    byEpisode: index('events_episode_idx').on(table.episodeId),
+    byAt: index('events_at_idx').on(table.at),
+  }),
+)
+
+/**
  * Settings — application-level configuration stored as key/value strings.
  * Typed access lives in src/server/lib/settings.ts.
  */
@@ -132,5 +160,7 @@ export type Episode = typeof episodes.$inferSelect
 export type NewEpisode = typeof episodes.$inferInsert
 export type Ad = typeof ads.$inferSelect
 export type NewAd = typeof ads.$inferInsert
+export type Event = typeof events.$inferSelect
+export type NewEvent = typeof events.$inferInsert
 export type EpisodeStatus = Episode['status']
 export type AdLabel = Ad['label']

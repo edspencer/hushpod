@@ -14,6 +14,7 @@ import { episodesRoute } from './routes/episodes.js'
 import { adsRoute } from './routes/ads.js'
 import { settingsRoute } from './routes/settings.js'
 import { statusRoute } from './routes/status.js'
+import { eventsRoute } from './routes/events.js'
 import { feedsRoute } from './routes/feeds.js'
 
 const log = logger('server')
@@ -29,6 +30,7 @@ app.get('/api/health', (c) => c.json({ ok: true, name: 'hushpod' }))
 app.route('/api/shows', showsRoute)
 app.route('/api/settings', settingsRoute)
 app.route('/api/status', statusRoute)
+app.route('/api', eventsRoute)
 app.route('/api', episodesRoute)
 app.route('/api', adsRoute)
 

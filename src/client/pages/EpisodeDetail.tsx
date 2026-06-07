@@ -7,6 +7,7 @@ import type { EpisodeStatus } from '@client/lib/api'
 import { cn } from '@client/lib/cn'
 import { EpisodePlayer } from '@client/components/EpisodePlayer'
 import { ProcessingStatus } from '@client/components/ProcessingStatus'
+import { EpisodeTimeline } from '@client/components/EpisodeTimeline'
 import { AdList } from '@client/components/AdList'
 
 const IN_FLIGHT: ReadonlySet<EpisodeStatus> = new Set([
@@ -136,6 +137,8 @@ export default function EpisodeDetail() {
         errorMessage={episode.errorMessage}
         retryCount={episode.retryCount}
       />
+
+      <EpisodeTimeline telemetry={episode.telemetry} />
 
       {notProcessed ? (
         <Card>

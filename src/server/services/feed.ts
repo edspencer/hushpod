@@ -3,6 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '../db/index.js'
 import { shows, episodes, type Show } from '../db/schema.js'
 import { slugify, uniqueSlug } from '../lib/text.js'
+import { emit } from './events.js'
 import { logger } from '../lib/logger.js'
 
 const log = logger('feed')
@@ -128,10 +129,13 @@ export async function checkShow(show: Show): Promise<DiscoverResult> {
     )
     const fresh = candidates.filter((c) => !existing.has(c.guid))
     if (fresh.length > 0) {
-      db.insert(episodes)
+      const inserted = db
+        .insert(episodes)
         .values(fresh.map((c) => ({ showId: show.id, status: 'pending' as const, ...c })))
-        .run()
-      discovered = fresh.length
+        .returning({ id: episodes.id })
+        .all()
+      for (const { id } of inserted) emit('episode.discovered', id, { showId: show.id })
+      discovered = inserted.length
     }
   }
 

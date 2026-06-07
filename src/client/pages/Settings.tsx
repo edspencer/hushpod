@@ -263,16 +263,6 @@ export default function Settings() {
             />
           </Field>
 
-          <Field htmlFor="concurrency" label="Concurrency">
-            <Input
-              id="concurrency"
-              type="number"
-              min={1}
-              value={String(form.concurrency)}
-              onChange={(e) => setNumber('concurrency', e.target.value)}
-            />
-          </Field>
-
           <Field htmlFor="crossfadeMs" label="Crossfade (ms)">
             <Input
               id="crossfadeMs"
@@ -280,6 +270,36 @@ export default function Settings() {
               min={0}
               value={String(form.crossfadeMs)}
               onChange={(e) => setNumber('crossfadeMs', e.target.value)}
+            />
+          </Field>
+
+          <Field htmlFor="downloadConcurrency" label="Download concurrency">
+            <Input
+              id="downloadConcurrency"
+              type="number"
+              min={1}
+              value={String(form.downloadConcurrency)}
+              onChange={(e) => setNumber('downloadConcurrency', e.target.value)}
+            />
+          </Field>
+
+          <Field htmlFor="transcribeConcurrency" label="Transcribe concurrency">
+            <Input
+              id="transcribeConcurrency"
+              type="number"
+              min={1}
+              value={String(form.transcribeConcurrency)}
+              onChange={(e) => setNumber('transcribeConcurrency', e.target.value)}
+            />
+          </Field>
+
+          <Field htmlFor="detectConcurrency" label="Detect concurrency">
+            <Input
+              id="detectConcurrency"
+              type="number"
+              min={1}
+              value={String(form.detectConcurrency)}
+              onChange={(e) => setNumber('detectConcurrency', e.target.value)}
             />
           </Field>
         </div>

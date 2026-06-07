@@ -70,6 +70,46 @@ export const DetectionResultSchema = z.object({
 export type DetectionResult = z.infer<typeof DetectionResultSchema>
 
 /* ------------------------------------------------------------------ *
+ * Episode telemetry — a derived rollup of the event log, stored as JSON on the
+ * episode. Timestamps are epoch milliseconds. Folded by services/events.ts.
+ * ------------------------------------------------------------------ */
+
+export const StageTelemetrySchema = z
+  .object({
+    startedAt: z.number(),
+    endedAt: z.number(),
+    ms: z.number(),
+    bytes: z.number(), // download
+    segments: z.number(), // transcribe
+    model: z.string(), // transcribe
+    ads: z.number(), // detect
+    removedSec: z.number(), // cut
+  })
+  .partial()
+export type StageTelemetry = z.infer<typeof StageTelemetrySchema>
+
+export const TelemetrySchema = z.object({
+  discoveredAt: z.number().optional(),
+  stages: z
+    .object({
+      download: StageTelemetrySchema.optional(),
+      transcribe: StageTelemetrySchema.optional(),
+      detect: StageTelemetrySchema.optional(),
+      cut: StageTelemetrySchema.optional(),
+    })
+    .default({}),
+  doneAt: z.number().optional(),
+  totalMs: z.number().optional(),
+  attempts: z.number().optional(),
+  lastError: z
+    .object({ at: z.number(), message: z.string(), stage: z.string().optional() })
+    .optional(),
+})
+export type Telemetry = z.infer<typeof TelemetrySchema>
+export const TELEMETRY_STAGES = ['download', 'transcribe', 'detect', 'cut'] as const
+export type TelemetryStage = (typeof TELEMETRY_STAGES)[number]
+
+/* ------------------------------------------------------------------ *
  * Application settings (stored as key/value strings in the DB)
  *
  * Values arrive from two sources: the DB (always strings) and API PATCH
@@ -101,9 +141,14 @@ export const SettingsSchema = z.object({
   llmApiKey: z.string().default(''),
   llmModel: z.string().default('llama3.1'),
 
-  // Pipeline
+  // Pipeline — per-stage concurrency. Each stage uses a different resource, so
+  // they run independently: downloads are network-bound (parallel-friendly),
+  // transcription is GPU/whisper-bound and not safe to run in parallel (whisper
+  // mutates process.cwd()), detection is Ollama-bound.
   checkIntervalMinutes: z.coerce.number().int().positive().default(60),
-  concurrency: z.coerce.number().int().positive().default(2),
+  downloadConcurrency: z.coerce.number().int().positive().default(3),
+  transcribeConcurrency: z.coerce.number().int().positive().default(1),
+  detectConcurrency: z.coerce.number().int().positive().default(2),
   crossfadeMs: z.coerce.number().nonnegative().default(0),
 
   // Serving

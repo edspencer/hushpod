@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react'
-import { Podcast, ListMusic, Scissors, Clock, Radio } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Podcast, ListMusic, Scissors, Clock, Radio, ChevronDown } from 'lucide-react'
 import { Card } from '@client/components/ui'
 import { useShows, useAdsStats, useStatus } from '@client/lib/api'
+import { QueueTable } from '@client/components/QueueTable'
+import { cn } from '@client/lib/cn'
 
 /** Format a duration in seconds as a compact human string, e.g. "2h 14m". */
 function formatDuration(totalSeconds: number): string {
@@ -52,23 +54,44 @@ export function GlobalStats() {
   const shows = useShows()
   const adsStats = useAdsStats()
   const status = useStatus(4000)
+  const [queueOpen, setQueueOpen] = useState(false)
 
   const totalShows = shows.data?.length ?? 0
   const episodesDone = status.data?.episodes?.done ?? 0
   const totalAds = adsStats.data?.totalAds ?? 0
   const totalSeconds = adsStats.data?.totalSeconds ?? 0
   const activeCount = status.data?.queue.active.length ?? 0
+  const queuedCount = status.data?.queue.queued.length ?? 0
+  const items = status.data?.queue.items ?? []
+  const busy = activeCount > 0 || queuedCount > 0
 
   return (
     <div className="space-y-3">
-      {activeCount > 0 && (
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-success">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-          </span>
-          <Radio className="h-3.5 w-3.5" />
-          Processing {activeCount} {activeCount === 1 ? 'episode' : 'episodes'}…
+      {busy && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setQueueOpen((v) => !v)}
+            aria-expanded={queueOpen}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-success transition-colors hover:bg-surface-2"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+            </span>
+            <Radio className="h-3.5 w-3.5" />
+            {activeCount > 0
+              ? `Processing ${activeCount} ${activeCount === 1 ? 'episode' : 'episodes'}`
+              : 'Queued'}
+            {queuedCount > 0 && <span className="text-muted">· {queuedCount} waiting</span>}
+            <ChevronDown
+              className={cn(
+                'h-3.5 w-3.5 text-muted transition-transform',
+                queueOpen && 'rotate-180',
+              )}
+            />
+          </button>
+          {queueOpen && <QueueTable items={items} />}
         </div>
       )}
 

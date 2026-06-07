@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
-import { eq, desc } from 'drizzle-orm'
+import { eq, asc, desc } from 'drizzle-orm'
 import { db } from '../db/index.js'
-import { episodes, ads, shows } from '../db/schema.js'
+import { episodes, ads, shows, events } from '../db/schema.js'
 import { queue, reprocessEpisode } from '../services/processor.js'
+import { parseTelemetry } from '../services/events.js'
 import { sanitizeGuid } from '../lib/config.js'
 import { TranscriptSchema } from '../../shared/schemas.js'
 
@@ -32,17 +33,30 @@ episodesRoute.get('/episodes/:id', (c) => {
     .get()
   const episodeAds = db.select().from(ads).where(eq(ads.episodeId, id)).orderBy(ads.startTime).all()
   // Omit the (large) transcript from the detail payload by default.
-  const { transcript, ...rest } = episode
+  const { transcript, telemetry, ...rest } = episode
   const guid = sanitizeGuid(episode.guid)
   return c.json({
     ...rest,
     showSlug: show?.slug ?? null,
     showTitle: show?.title ?? null,
     hasTranscript: !!transcript,
+    telemetry: parseTelemetry(telemetry),
     audioCleanUrl: show ? `/audio/${show.slug}/${guid}/clean.mp3` : null,
     audioOriginalUrl: show ? `/audio/${show.slug}/${guid}/original.mp3` : null,
     ads: episodeAds,
   })
+})
+
+/** Per-episode event log (oldest first): GET /api/episodes/:id/events */
+episodesRoute.get('/episodes/:id/events', (c) => {
+  const id = Number(c.req.param('id'))
+  const rows = db
+    .select()
+    .from(events)
+    .where(eq(events.episodeId, id))
+    .orderBy(asc(events.at))
+    .all()
+  return c.json(rows.map((r) => ({ ...r, data: r.data ? JSON.parse(r.data) : null })))
 })
 
 /** Full timestamped transcript: GET /api/episodes/:id/transcript */
