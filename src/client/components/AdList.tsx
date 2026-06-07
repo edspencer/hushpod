@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Scissors } from 'lucide-react';
 import {
   Badge,
@@ -39,20 +39,43 @@ const LABEL_TEXT: Record<AdLabel, string> = {
   outro: 'Outro',
 };
 
-function AdCard({ ad }: { ad: Ad }) {
+function AdCard({ ad, active }: { ad: Ad; active: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   const duration = Math.max(0, ad.endTime - ad.startTime);
   const text = ad.adText ?? '';
   const isLong = text.length > 180;
 
+  // Bring the active segment into view (no-op if already visible).
+  useEffect(() => {
+    if (active) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [active]);
+
   return (
-    <div className="rounded-md border border-border bg-surface-2/40 p-3">
+    <div
+      ref={ref}
+      className={cn(
+        'rounded-md border p-3 transition-colors',
+        active
+          ? 'border-brand-500 bg-brand-500/10 ring-1 ring-brand-500'
+          : 'border-border bg-surface-2/40',
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge variant={ad.label}>{LABEL_TEXT[ad.label]}</Badge>
           <span className="text-sm font-medium text-fg">
             {ad.company ?? 'Unknown advertiser'}
           </span>
+          {active && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-300">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
+              </span>
+              Now playing
+            </span>
+          )}
         </div>
         <span className="font-mono text-xs text-muted">
           {fmtTime(ad.startTime)}&ndash;{fmtTime(ad.endTime)} ·{' '}
@@ -98,10 +121,12 @@ function AdCard({ ad }: { ad: Ad }) {
 export interface AdListProps {
   ads: Ad[];
   originalDuration: number | null;
+  /** id of the segment currently under the player's playhead, if any */
+  activeAdId?: number | null;
   className?: string;
 }
 
-export function AdList({ ads, originalDuration, className }: AdListProps) {
+export function AdList({ ads, originalDuration, activeAdId, className }: AdListProps) {
   const removedSeconds = ads.reduce(
     (sum, ad) => sum + Math.max(0, ad.endTime - ad.startTime),
     0,
@@ -154,7 +179,7 @@ export function AdList({ ads, originalDuration, className }: AdListProps) {
         ) : (
           <div className="space-y-2">
             {ads.map((ad) => (
-              <AdCard key={ad.id} ad={ad} />
+              <AdCard key={ad.id} ad={ad} active={ad.id === activeAdId} />
             ))}
           </div>
         )}

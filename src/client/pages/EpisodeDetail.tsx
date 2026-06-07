@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -58,6 +58,9 @@ export default function EpisodeDetail() {
 
   const query = useEpisode(numericId);
   const { data: episode, isLoading, isError, error, refetch } = query;
+
+  // Which detected segment the player's head is currently inside (live).
+  const [activeAdId, setActiveAdId] = useState<number | null>(null);
 
   const inFlight = episode ? IN_FLIGHT.has(episode.status) : false;
 
@@ -183,6 +186,7 @@ export default function EpisodeDetail() {
             originalUrl={episode.audioOriginalUrl}
             fallbackDuration={episode.duration}
             ads={episode.ads}
+            onActiveAdChange={setActiveAdId}
           />
 
           <DownloadBar
@@ -190,7 +194,11 @@ export default function EpisodeDetail() {
             originalUrl={episode.audioOriginalUrl}
           />
 
-          <AdList ads={episode.ads} originalDuration={episode.duration} />
+          <AdList
+            ads={episode.ads}
+            originalDuration={episode.duration}
+            activeAdId={activeAdId}
+          />
         </>
       )}
     </div>

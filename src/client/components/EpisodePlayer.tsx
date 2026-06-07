@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pause,
   Play,
@@ -43,6 +43,9 @@ export interface EpisodePlayerProps {
   /** fallback total duration (seconds) until the audio reports its own */
   fallbackDuration: number | null;
   ads: Ad[];
+  /** Notified when the segment under the playhead changes (null when none, or
+   * when playing the clean track where ads no longer exist). */
+  onActiveAdChange?: (adId: number | null) => void;
   className?: string;
 }
 
@@ -52,6 +55,7 @@ export function EpisodePlayer({
   originalUrl,
   fallbackDuration,
   ads,
+  onActiveAdChange,
   className,
 }: EpisodePlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -216,6 +220,22 @@ export function EpisodePlayer({
   const progressPct =
     effectiveDuration > 0 ? (current / effectiveDuration) * 100 : 0;
 
+  // The ad segment under the playhead. Ad timestamps are on the original
+  // timeline, so this only applies while the original track is active.
+  const activeAdId = useMemo(() => {
+    if (version !== 'original') return null;
+    const hit = ads.find((a) => current >= a.startTime && current < a.endTime);
+    return hit ? hit.id : null;
+  }, [version, current, ads]);
+
+  // Notify the parent only when the active segment actually changes.
+  useEffect(() => {
+    onActiveAdChange?.(activeAdId);
+  }, [activeAdId, onActiveAdChange]);
+
+  // Clear any highlight when this player unmounts.
+  useEffect(() => () => onActiveAdChange?.(null), [onActiveAdChange]);
+
   if (noAudio) {
     return (
       <div
@@ -310,12 +330,16 @@ export function EpisodePlayer({
                 0.5,
                 ((ad.endTime - ad.startTime) / effectiveDuration) * 100,
               );
+              const isActive = ad.id === activeAdId;
               return (
                 <div
                   key={ad.id}
                   className={cn(
-                    'absolute inset-y-0 z-10',
+                    'absolute inset-y-0 z-10 transition-[filter,opacity]',
                     MARKER_COLOR[ad.label],
+                    isActive
+                      ? 'opacity-100 brightness-150 outline outline-1 outline-white/90'
+                      : 'opacity-100',
                   )}
                   style={{ left: `${left}%`, width: `${width}%` }}
                   title={`${ad.company ?? 'Unknown'} · ${ad.label} (${fmtTime(
