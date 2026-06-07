@@ -103,68 +103,165 @@ bundles FFmpeg and the whisper.cpp build toolchain (cmake/make/g++), so local
 transcription works out of the box. To reach a host-local Ollama from the
 container, set the LLM base URL to `http://host.docker.internal:11434/v1`.
 
-## Deployment: Proxmox + OPNsense
+## Deployment (reference architecture)
 
-How this is run in a homelab — a Docker host on a Proxmox cluster, reached at a
-friendly hostname via OPNsense DNS.
+This is how the author actually runs HushPod, and a recipe to reproduce it. The
+orchestrator (download → transcribe → detect → cut → serve) runs in Docker on a
+Proxmox cluster, while the two GPU-hungry steps — transcription and ad detection
+— are offloaded to a spare Apple-Silicon Mac, which has far more usable AI
+throughput than a CPU-only Proxmox node.
 
-### 1. Host the container on Proxmox
-
-Use a VM, or a **privileged** LXC with nesting enabled (Docker in an
-unprivileged LXC is fiddly). In the Proxmox shell for the container/VM:
-
-```sh
-# install Docker, then:
-mkdir -p /opt/hushpod && cd /opt/hushpod
-# create docker-compose.yml (see repo) or run directly:
-docker run -d --name hushpod --restart unless-stopped \
-  -p 3000:3000 -v /opt/hushpod/data:/app/data \
-  -e HUSHPOD_DATA_DIR=/app/data \
-  ghcr.io/edspencer/hushpod:latest
+```
+                ┌───────────────────────────── LAN ─────────────────────────────┐
+  podcast apps ─┤  OPNsense (Unbound DNS): hushpod.home.arpa ─┐                   │
+                │                                             ▼                   │
+                │                              Caddy (reverse proxy + TLS)        │
+                │                                             │                   │
+                │                                             ▼                   │
+                │   Proxmox ── HushPod container (ghcr.io/edspencer/hushpod)      │
+                │      • SQLite on LOCAL disk    • media on NAS (NFS/SMB)         │
+                │                     │  remote whisper + LLM over HTTP           │
+                │                     ▼                                           │
+                │   Spare Apple-Silicon Mac (always-on AI host)                  │
+                │      • whisper-server (Metal)     • Ollama (Metal)              │
+                └────────────────────────────────────────────────────────────────┘
 ```
 
-Notes:
+### Can't I just run everything in the container?
 
-- **No GPU/Metal** on a Linux Proxmox host — whisper.cpp runs on CPU. Give the
-  VM/LXC several cores, or set `whisperMode: remote` and point
-  `whisperEndpoint` at a GPU box (e.g. `faster-whisper-server`).
-- The LLM endpoint must be reachable from the container — point `llmBaseUrl` at
-  an Ollama/LLM host on the LAN (e.g. `http://10.0.0.x:11434/v1`).
-- Persist `/app/data` (SQLite DB + audio) on a bind mount or volume so episodes
-  survive restarts/upgrades.
+- **Whisper:** yes — whisper.cpp compiles and runs inside the HushPod image, but
+  CPU-only (no Metal/CUDA in a typical Proxmox container), so it's slow on long
+  episodes. Fine for light use: set `whisperMode: local` and give the container
+  plenty of cores.
+- **Ollama:** no, it isn't bundled. You'd run it as its own container, and a 14B
+  model is only practical with a GPU passed through (NVIDIA on Linux). On a
+  CPU-only node it's too slow to be useful.
 
-### 2. DNS in OPNsense
+So a fully self-contained, all-in-Docker deployment is great **if your Proxmox
+host has a GPU you can pass through**. Without one, offloading to an
+Apple-Silicon Mac (Metal) is the pragmatic high-performance option — and it puts
+otherwise-idle hardware to work. An M1/M2 with 32–64 GB RAM comfortably runs
+`whisper` plus a quantized 14B model.
 
-Give it a hostname (e.g. `hushpod.home.arpa` or `hushpod.lan`):
+### 1. AI host — a spare Apple-Silicon Mac (Ollama + whisper, Metal)
 
-1. **Services → Unbound DNS → Overrides → Host Overrides → Add.**
-2. Host `hushpod`, Domain `home.arpa` (or your local domain), Type `A`, IP =
-   the container/VM's address. Save & apply.
-3. Clients on the LAN can now reach `http://hushpod.home.arpa:3000`.
+Give it a static IP / DHCP reservation (referred to below as `192.168.1.x`).
 
-### 3. (Optional) Reverse proxy + TLS
+**Ollama** (ad detection):
 
-To drop the `:3000` and add HTTPS, put a reverse proxy in front (Caddy is the
-least effort, or the OPNsense Caddy/nginx plugin / Traefik):
+```sh
+brew install ollama
+# Listen on the LAN, not just localhost:
+launchctl setenv OLLAMA_HOST "0.0.0.0:11434"
+# restart Ollama, then pull a model:
+ollama pull qwen2.5:14b
+```
+
+**whisper-server** (transcription) — build whisper.cpp once:
+
+```sh
+brew install cmake
+git clone https://github.com/ggml-org/whisper.cpp && cd whisper.cpp
+cmake -B build && cmake --build build -j --config Release
+sh ./models/download-ggml-model.sh base       # or small / medium
+./build/bin/whisper-server -m models/ggml-base.bin \
+  --host 0.0.0.0 --port 8385 \
+  --inference-path /v1/audio/transcriptions -l en -t 8
+```
+
+The `--inference-path /v1/audio/transcriptions` flag makes whisper-server match
+HushPod's OpenAI-compatible client exactly, so no adapter is needed.
+
+**macOS firewall** — allow incoming connections to both processes (on a trusted
+LAN you can alternatively just turn the firewall off):
+
+```sh
+FW=/usr/libexec/ApplicationFirewall/socketfilterfw
+sudo "$FW" --add "$(pwd)/build/bin/whisper-server"
+sudo "$FW" --unblock "$(pwd)/build/bin/whisper-server"
+# Ollama typically prompts to allow incoming connections on first use — approve it.
+```
+
+**Keep it always-on** — disable sleep (System Settings → Battery, or
+`caffeinate -dimsu`), and run `ollama serve` and the `whisper-server` command as
+launchd LaunchAgents so they come back after a reboot. If the Mac sleeps or
+leaves the network, processing stalls until it returns.
+
+### 2. HushPod on Proxmox (the published image)
+
+Use a VM, or a **privileged** LXC with nesting enabled (Docker in an
+unprivileged LXC is fiddly). `docker-compose.yml`:
+
+```yaml
+services:
+  hushpod:
+    image: ghcr.io/edspencer/hushpod:latest
+    restart: unless-stopped
+    ports: ['3000:3000']
+    volumes:
+      - /mnt/nas/hushpod/media:/app/data # media → NAS (large, write-once)
+      - /opt/hushpod/db:/app/db # SQLite → LOCAL disk (see below)
+    environment:
+      - HUSHPOD_DATA_DIR=/app/data
+      - HUSHPOD_DB_PATH=/app/db/hushpod.db
+```
+
+```sh
+docker compose up -d        # `docker compose pull && docker compose up -d` to upgrade
+```
+
+### 3. Storage — NAS for media, local disk for SQLite
+
+Media files are large and effectively write-once, so a NAS share is ideal for
+`/app/data` (which holds `shows/…/{original,clean}.mp3` and transcripts).
+
+**Do not put the SQLite database on an NFS/SMB share.** SQLite's file locking
+(especially in WAL mode) is unreliable over network filesystems and can hang or
+corrupt. Keep `hushpod.db` on the node's local disk (or block storage that
+presents as local) via `HUSHPOD_DB_PATH`, as in the compose above. The database
+is small, so this costs almost nothing.
+
+### 4. DNS — OPNsense (Unbound)
+
+**Services → Unbound DNS → Overrides → Host Overrides → Add**: host `hushpod`,
+your local domain (e.g. `home.arpa`), type `A`, IP of the Caddy/Proxmox host.
+Clients then resolve `hushpod.home.arpa` on the LAN.
+
+### 5. Reverse proxy + TLS — Caddy
 
 ```caddy
 hushpod.home.arpa {
-    reverse_proxy 10.0.0.x:3000
+    reverse_proxy <proxmox-host-ip>:3000
+    tls internal   # Caddy issues its own cert for an internal domain
 }
 ```
 
-### 4. Set the public base URL
+Note: HushPod has **no authentication** — keep it on the trusted LAN and don't
+port-forward it. If you do front it with auth, the `/feed/*` and `/audio/*`
+routes must stay reachable without a login, because podcast apps can't
+authenticate interactively.
 
-So the generated RSS feeds use the right absolute URLs, set `baseUrl` to however
-clients reach HushPod (Settings page or API):
+### 6. Point HushPod at the AI host
+
+Via the Settings page, or the API:
 
 ```sh
-curl -X PATCH http://hushpod.home.arpa:3000/api/settings \
-  -H 'content-type: application/json' \
-  -d '{"baseUrl":"https://hushpod.home.arpa"}'
+curl -X PATCH https://hushpod.home.arpa/api/settings \
+  -H 'content-type: application/json' -d '{
+    "whisperMode": "remote",
+    "whisperEndpoint": "http://192.168.1.x:8385/v1",
+    "whisperModel": "base",
+    "llmProvider": "openai-compatible",
+    "llmBaseUrl": "http://192.168.1.x:11434/v1",
+    "llmModel": "qwen2.5:14b",
+    "baseUrl": "https://hushpod.home.arpa",
+    "concurrency": 1
+  }'
 ```
 
-Then subscribe your podcast app to `https://hushpod.home.arpa/feed/{slug}`.
+Use `concurrency: 1` when whisper and Ollama share a single Mac GPU — it stops
+them fighting over the GPU and is usually faster per episode. Then subscribe
+your podcast app to `https://hushpod.home.arpa/feed/{slug}`.
 
 ## Development
 
