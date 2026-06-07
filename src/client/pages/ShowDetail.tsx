@@ -7,6 +7,7 @@ import { AdTable } from '@client/components/AdTable'
 import { CopyField } from '@client/components/CopyField'
 import { EpisodeList } from '@client/components/EpisodeList'
 import { ShowSettingsPanel } from '@client/components/ShowSettingsPanel'
+import { ShowStats } from '@client/components/ShowStats'
 
 function parseId(raw: string | undefined): number | undefined {
   if (!raw) return undefined
@@ -162,6 +163,9 @@ export default function ShowDetail() {
           </Button>
         </div>
       </div>
+
+      {/* Stats */}
+      <ShowStats episodes={show.episodes} ads={ads} />
 
       {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
