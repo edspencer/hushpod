@@ -1,7 +1,7 @@
 import { AlertTriangle, Clock, Download, FileAudio, ScanSearch, Scissors } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@client/components/ui'
 import type { StageTelemetry, Telemetry, TelemetryStage } from '@client/lib/api'
-import { formatBytes, formatMs } from '@client/lib/format'
+import { formatBytes, formatMs, formatTokens, formatUsd } from '@client/lib/format'
 import { cn } from '@client/lib/cn'
 
 const STAGES: {
@@ -35,7 +35,14 @@ const STAGES: {
     icon: ScanSearch,
     bar: 'bg-warning',
     fg: 'text-warning',
-    facts: (t) => (t.ads != null ? `${t.ads} segment${t.ads === 1 ? '' : 's'} found` : null),
+    facts: (t) => {
+      if (t.ads == null) return null
+      const parts = [`${t.ads} segment${t.ads === 1 ? '' : 's'} found`]
+      const tok = (t.inputTokens ?? 0) + (t.outputTokens ?? 0)
+      if (tok) parts.push(`${formatTokens(tok)} tok`)
+      if (t.costUsd != null) parts.push(formatUsd(t.costUsd))
+      return parts.join(' · ')
+    },
   },
   {
     key: 'cut',
@@ -70,6 +77,14 @@ export function EpisodeTimeline({ telemetry, className }: EpisodeTimelineProps) 
         {rows.length > 0 && (
           <span className="text-xs text-muted">
             total <span className="font-medium text-fg tabular-nums">{formatMs(total)}</span>
+            {telemetry.costUsd != null && telemetry.costUsd > 0 && (
+              <>
+                {' · '}
+                <span className="font-medium text-fg tabular-nums">
+                  {formatUsd(telemetry.costUsd)}
+                </span>
+              </>
+            )}
           </span>
         )}
       </CardHeader>

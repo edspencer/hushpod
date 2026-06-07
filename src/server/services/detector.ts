@@ -174,6 +174,17 @@ export function extractJson(text: string): unknown {
   throw new Error('unbalanced JSON in model output')
 }
 
+/** Token usage accumulated across all the LLM calls in one detection run. */
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+}
+const zeroUsage = (): TokenUsage => ({ inputTokens: 0, outputTokens: 0 })
+function addUsage(acc: TokenUsage, u?: { promptTokens?: number; completionTokens?: number }): void {
+  acc.inputTokens += u?.promptTokens ?? 0
+  acc.outputTokens += u?.completionTokens ?? 0
+}
+
 /** Run detection on one window of segments, with a generateText repair fallback. */
 async function detectWindow(
   settings: AppSettings,
@@ -181,27 +192,30 @@ async function detectWindow(
   previousAds: Ad[],
   recurring: RecurringSpan[],
   guidance?: string | null,
-): Promise<DetectedSegment[]> {
+): Promise<{ found: DetectedSegment[]; usage: TokenUsage }> {
   const model = getModel(settings)
   const prompt = buildUserPrompt(segments, previousAds, recurring, guidance)
+  const usage = zeroUsage()
 
   try {
-    const { object } = await generateObject({
+    const res = await generateObject({
       model,
       schema: DetectionResultSchema,
       system: SYSTEM_PROMPT,
       prompt,
     })
-    return object.segments
+    addUsage(usage, res.usage)
+    return { found: res.object.segments, usage }
   } catch (err) {
     log.warn(`generateObject failed, trying repair fallback: ${(err as Error).message}`)
-    const { text } = await generateText({
+    const res = await generateText({
       model,
       system: `${SYSTEM_PROMPT}\n\nRespond with ONLY a JSON object: {"segments":[{"startSegmentId":N,"endSegmentId":N,"label":"ad|fluff","company":string|null,"reason":string,"confidence":"low|medium|high"}]}. No prose, no markdown.`,
       prompt,
     })
-    const parsed = DetectionResultSchema.parse(extractJson(text))
-    return parsed.segments
+    addUsage(usage, res.usage)
+    const parsed = DetectionResultSchema.parse(extractJson(res.text))
+    return { found: parsed.segments, usage }
   }
 }
 
@@ -242,9 +256,10 @@ export async function detectAds(
   previousAds: Ad[] = [],
   guidance?: string | null,
   previousTranscripts: Transcript[] = [],
-): Promise<DetectedAd[]> {
+): Promise<{ ads: DetectedAd[]; usage: TokenUsage }> {
+  const usage = zeroUsage()
   const segs = transcript.segments
-  if (segs.length === 0) return []
+  if (segs.length === 0) return { ads: [], usage }
 
   // Cross-episode recurrence: spans whose wording repeats across recent episodes
   // are high-confidence "fluff" candidates. Fed to the LLM as priors, and any it
@@ -258,17 +273,27 @@ export async function detectAds(
     const window = segs.slice(i, i + WINDOW_SEGMENTS)
     if (window.length === 0) break
     log.info(`detecting window ${i}-${i + window.length} of ${segs.length} segments`)
-    const found = await detectWindow(settings, window, previousAds, recurring, guidance)
+    const { found, usage: u } = await detectWindow(
+      settings,
+      window,
+      previousAds,
+      recurring,
+      guidance,
+    )
     raw.push(...found)
+    usage.inputTokens += u.inputTokens
+    usage.outputTokens += u.outputTokens
     if (i + WINDOW_SEGMENTS >= segs.length) break
   }
 
   const withFluff = addUncoveredFluff(raw, recurring)
   const mapped = mapDetectionsToAds(withFluff, segs)
-  const verified = await verifyDetections(mapped, settings, guidance)
-  const reconciled = verified.map(reclassifyFluff)
-  log.info(`detected ${mapped.length} segment(s); kept ${verified.length} after verification`)
-  return reconciled
+  const { kept, usage: vUsage } = await verifyDetections(mapped, settings, guidance)
+  usage.inputTokens += vUsage.inputTokens
+  usage.outputTokens += vUsage.outputTokens
+  const reconciled = kept.map(reclassifyFluff)
+  log.info(`detected ${mapped.length} segment(s); kept ${kept.length} after verification`)
+  return { ads: reconciled, usage }
 }
 
 // Recurring sponsor reads and cross-promos repeat across episodes too, so
@@ -329,7 +354,8 @@ async function verifyDetections(
   ads: DetectedAd[],
   settings: AppSettings,
   guidance?: string | null,
-): Promise<DetectedAd[]> {
+): Promise<{ kept: DetectedAd[]; usage: TokenUsage }> {
+  const usage = zeroUsage()
   // The verifier audits for ad LANGUAGE, so it only applies to ad/promo. Fluff
   // is recurring scaffolding (often long, with no ad cues) — auditing it for ad
   // language would wrongly drop it, so it bypasses verification entirely.
@@ -343,6 +369,8 @@ async function verifyDetections(
       continue
     }
     const verdict = await verifySegment(a, settings, guidance)
+    usage.inputTokens += verdict.usage.inputTokens
+    usage.outputTokens += verdict.usage.outputTokens
     if (verdict.keep) {
       kept.push(a)
     } else {
@@ -352,35 +380,61 @@ async function verifyDetections(
       )
     }
   }
-  return kept
+  return { kept, usage }
 }
 
 async function verifySegment(
   ad: DetectedAd,
   settings: AppSettings,
   guidance?: string | null,
-): Promise<{ keep: boolean; evidence: string | null }> {
+): Promise<{ keep: boolean; evidence: string | null; usage: TokenUsage }> {
   const model = getModel(settings)
+  const usage = zeroUsage()
   const g = guidance?.trim()
-    ? `\n\nThe user provided this guidance about this show's ads/promos — weigh it: ${guidance.trim()}`
+    ? `\n\nThe user provided this guidance about this show's ads — weigh it: ${guidance.trim()}`
     : ''
   const prompt = `This span was flagged as a possible "${ad.label}"${
     ad.company ? ` for ${ad.company}` : ''
   }. Is it genuinely an advertisement/promotion, or editorial content?${g}\n\nSpan:\n"""\n${ad.adText.slice(0, 4000)}\n"""`
   try {
-    const { object } = await generateObject({
+    const res = await generateObject({
       model,
       schema: VerifierSchema,
       system: VERIFIER_SYSTEM,
       prompt,
     })
-    return { keep: object.isAd, evidence: object.evidence }
+    addUsage(usage, res.usage)
+    return { keep: res.object.isAd, evidence: res.object.evidence, usage }
   } catch (err) {
     log.warn(
       `verifier failed for [${ad.startTime.toFixed(0)}-${ad.endTime.toFixed(0)}], keeping span: ${(err as Error).message}`,
     )
-    return { keep: true, evidence: null }
+    return { keep: true, evidence: null, usage }
   }
+}
+
+// Approximate USD per 1M tokens (input/output). Cloud APIs return token usage
+// but not cost, so we price it ourselves. Local models (Ollama) match nothing →
+// $0. These are estimates; update as pricing changes.
+const PRICING: { match: RegExp; input: number; output: number }[] = [
+  { match: /haiku/i, input: 1, output: 5 },
+  { match: /sonnet/i, input: 3, output: 15 },
+  { match: /opus/i, input: 15, output: 75 },
+  { match: /gpt-4\.1-nano/i, input: 0.1, output: 0.4 },
+  { match: /gpt-4\.1-mini/i, input: 0.4, output: 1.6 },
+  { match: /gpt-4\.1/i, input: 2, output: 8 },
+  { match: /gpt-5-nano/i, input: 0.05, output: 0.4 },
+  { match: /gpt-5-mini/i, input: 0.25, output: 2 },
+  { match: /gpt-5/i, input: 1.25, output: 10 },
+]
+
+/** Estimated USD cost of a detection run, from the model id and token counts.
+ * Returns 0 for local/unknown models. */
+export function costUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const p = PRICING.find((p) => p.match.test(model))
+  if (!p) return 0
+  const cost = (inputTokens * p.input + outputTokens * p.output) / 1_000_000
+  return Math.round(cost * 1e6) / 1e6
 }
 
 /**

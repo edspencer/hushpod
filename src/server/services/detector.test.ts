@@ -6,6 +6,7 @@ import {
   mapDetectionsToAds,
   addUncoveredFluff,
   reclassifyFluff,
+  costUsd,
   type DetectedAd,
 } from './detector.js'
 import type { DetectedSegment, TranscriptSegment } from '../../shared/schemas.js'
@@ -107,6 +108,16 @@ test('reclassifyFluff: genuine scaffolding stays fluff', () => {
 test('reclassifyFluff: non-fluff labels pass through untouched', () => {
   const ad: DetectedAd = { ...fluff('this message comes from x'), label: 'ad' }
   assert.equal(reclassifyFluff(ad).label, 'ad')
+})
+
+test('costUsd: prices cloud models, free for local/unknown', () => {
+  // sonnet = $3/$15 per 1M: 1M in + 1M out = 3 + 15 = 18
+  assert.equal(costUsd('claude-sonnet-4-6', 1_000_000, 1_000_000), 18)
+  // haiku = $1/$5
+  assert.equal(costUsd('claude-haiku-4-5-20251001', 1_000_000, 1_000_000), 6)
+  // local / unknown → free
+  assert.equal(costUsd('qwen2.5:14b', 1_000_000, 1_000_000), 0)
+  assert.equal(costUsd('gemma3:27b', 500_000, 500_000), 0)
 })
 
 test('mapDetectionsToAds: maps ids to exact times and joins text', () => {

@@ -32,3 +32,17 @@ export function formatBytes(n: number | null | undefined): string {
   const mb = n / (1024 * 1024)
   return mb < 1024 ? `${mb.toFixed(1)} MB` : `${(mb / 1024).toFixed(2)} GB`
 }
+
+/** Estimated USD cost. 0 (local model) renders as "free". */
+export function formatUsd(n: number | null | undefined): string {
+  if (n == null) return '—'
+  if (n === 0) return 'free'
+  if (n < 0.01) return `<$0.01`
+  return `$${n.toFixed(n < 1 ? 3 : 2)}`
+}
+
+/** Token counts, e.g. 12.3k. */
+export function formatTokens(n: number | null | undefined): string {
+  if (!n) return '—'
+  return n < 1000 ? String(n) : `${(n / 1000).toFixed(1)}k`
+}

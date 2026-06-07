@@ -35,7 +35,16 @@ export function parseTelemetry(raw: string | null | undefined): Telemetry {
   }
 }
 
-const FACT_KEYS = ['bytes', 'segments', 'model', 'ads', 'removedSec'] as const
+const FACT_KEYS = [
+  'bytes',
+  'segments',
+  'model',
+  'ads',
+  'inputTokens',
+  'outputTokens',
+  'costUsd',
+  'removedSec',
+] as const
 
 /**
  * Fold one event into a telemetry rollup (pure). `<stage>.started` records the
@@ -57,6 +66,7 @@ export function foldTelemetry(
   if (type === 'episode.done') {
     t.doneAt = atMs
     t.totalMs = TELEMETRY_STAGES.reduce((sum, k) => sum + (t.stages[k]?.ms ?? 0), 0)
+    t.costUsd = TELEMETRY_STAGES.reduce((sum, k) => sum + (t.stages[k]?.costUsd ?? 0), 0)
     return t
   }
   if (type === 'episode.error') {

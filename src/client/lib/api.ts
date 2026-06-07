@@ -117,6 +117,9 @@ export interface StageTelemetry {
   segments?: number
   model?: string
   ads?: number
+  inputTokens?: number
+  outputTokens?: number
+  costUsd?: number
   removedSec?: number
 }
 
@@ -127,6 +130,7 @@ export interface Telemetry {
   stages: Partial<Record<TelemetryStage, StageTelemetry>>
   doneAt?: number
   totalMs?: number
+  costUsd?: number
   attempts?: number
   lastError?: { at: number; message: string; stage?: string }
 }

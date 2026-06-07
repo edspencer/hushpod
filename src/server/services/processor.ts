@@ -18,7 +18,7 @@ import { logger } from '../lib/logger.js'
 import { TranscriptSchema, type Transcript } from '../../shared/schemas.js'
 import { downloadEpisode } from './downloader.js'
 import { transcribe } from '../lib/whisper.js'
-import { detectAds } from './detector.js'
+import { detectAds, costUsd } from './detector.js'
 import { extendForTransitions } from './transition.js'
 import { cutEpisode } from './cutter.js'
 import { emit } from './events.js'
@@ -176,7 +176,7 @@ async function runDetect(id: number): Promise<void> {
   const tDetect = Date.now()
   const prevAds = previousEpisodeAds(show, episode)
   const prevTranscripts = previousEpisodeTranscripts(show, episode)
-  const detected = await detectAds(
+  const { ads: detected, usage } = await detectAds(
     transcript,
     settings,
     prevAds,
@@ -205,7 +205,12 @@ async function runDetect(id: number): Promise<void> {
   emit('detect.finished', id, {
     showId: show.id,
     durationMs: Date.now() - tDetect,
-    data: { ads: detected.length },
+    data: {
+      ads: detected.length,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      costUsd: costUsd(settings.llmModel, usage.inputTokens, usage.outputTokens),
+    },
   })
 
   // Cut — only the labels this show wants removed.

@@ -87,6 +87,9 @@ export const StageTelemetrySchema = z
     segments: z.number(), // transcribe
     model: z.string(), // transcribe
     ads: z.number(), // detect
+    inputTokens: z.number(), // detect (LLM)
+    outputTokens: z.number(), // detect (LLM)
+    costUsd: z.number(), // detect (LLM) — estimated
     removedSec: z.number(), // cut
   })
   .partial()
@@ -104,6 +107,7 @@ export const TelemetrySchema = z.object({
     .default({}),
   doneAt: z.number().optional(),
   totalMs: z.number().optional(),
+  costUsd: z.number().optional(),
   attempts: z.number().optional(),
   lastError: z
     .object({ at: z.number(), message: z.string(), stage: z.string().optional() })

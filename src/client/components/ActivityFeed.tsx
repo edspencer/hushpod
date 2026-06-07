@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, Spinner } from '@client/components/ui'
 import { useEvents } from '@client/lib/api'
 import type { ActivityEvent } from '@client/lib/api'
-import { formatBytes, formatMs, relativeTime } from '@client/lib/format'
+import { formatBytes, formatMs, formatUsd, relativeTime } from '@client/lib/format'
 import { cn } from '@client/lib/cn'
 
 type Tone = 'done' | 'error' | 'finished' | 'muted'
@@ -33,8 +33,11 @@ function describe(e: ActivityEvent): { label: string; detail?: string; tone: Ton
       }
     case 'detect.started':
       return { label: 'Detecting…', tone: 'muted' }
-    case 'detect.finished':
-      return { label: 'Detected', detail: `${num(d, 'ads') ?? 0} segments`, tone: 'finished' }
+    case 'detect.finished': {
+      const cost = num(d, 'costUsd')
+      const detail = `${num(d, 'ads') ?? 0} segments${cost ? ` · ${formatUsd(cost)}` : ''}`
+      return { label: 'Detected', detail, tone: 'finished' }
+    }
     case 'cut.started':
       return { label: 'Cutting…', tone: 'muted' }
     case 'cut.finished':
