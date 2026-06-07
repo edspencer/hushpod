@@ -6,7 +6,8 @@ import { runMigrations } from './db/migrate.js'
 import { resumePending } from './services/processor.js'
 import { checkAllShows } from './services/feed.js'
 import { getSettings } from './lib/settings.js'
-import { PORT, HOST } from './lib/config.js'
+import { join } from 'node:path'
+import { PORT, HOST, CLIENT_DIR } from './lib/config.js'
 import { logger } from './lib/logger.js'
 import { showsRoute } from './routes/shows.js'
 import { episodesRoute } from './routes/episodes.js'
@@ -35,10 +36,11 @@ app.route('/api', adsRoute)
 app.route('/', feedsRoute)
 
 // Static client (built by Vite to dist/client). Present only in production.
-const clientDir = './dist/client'
-if (existsSync(clientDir)) {
-  app.use('/assets/*', serveStatic({ root: clientDir }))
-  app.get('*', serveStatic({ path: `${clientDir}/index.html` }))
+// CLIENT_DIR is absolute so serving keeps working even while whisper has
+// temporarily changed the process cwd during transcription.
+if (existsSync(CLIENT_DIR)) {
+  app.use('/assets/*', serveStatic({ root: CLIENT_DIR }))
+  app.get('*', serveStatic({ path: join(CLIENT_DIR, 'index.html') }))
 }
 
 // Resume any work interrupted by a restart.

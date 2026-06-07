@@ -19,6 +19,12 @@ export const SHOWS_DIR = resolve(`${DATA_DIR}/shows`)
 export const PORT = Number.parseInt(env('PORT', '3000'), 10)
 export const HOST = env('HOST', '0.0.0.0')
 
+// Built client assets. Resolved to an ABSOLUTE path at startup: nodejs-whisper
+// chdir()s the process during transcription, so any cwd-relative static path
+// would 404 while a transcription is running. This module loads before any
+// processing begins, so process.cwd() here is still the real working dir.
+export const CLIENT_DIR = resolve('dist/client')
+
 /** Absolute path on disk for an episode's media directory. */
 export function episodeDir(slug: string, guid: string): string {
   return resolve(SHOWS_DIR, slug, sanitizeGuid(guid))
