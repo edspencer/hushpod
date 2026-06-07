@@ -113,7 +113,9 @@ export type SettingsUpdate = z.infer<typeof SettingsUpdateSchema>
  * ------------------------------------------------------------------ */
 
 export const CreateShowSchema = z.object({
-  feedUrl: z.string().url(),
+  // Accepts a feed URL, an Apple Podcasts URL/id, or a show's website — the
+  // server resolves it to an actual RSS feed URL.
+  feedUrl: z.string().trim().min(1),
 })
 
 export const UpdateShowSchema = z.object({

@@ -9,17 +9,6 @@ export interface AddShowDialogProps {
   onClose: () => void
 }
 
-function looksLikeUrl(value: string): boolean {
-  const trimmed = value.trim()
-  if (!trimmed) return false
-  try {
-    const url = new URL(trimmed)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
 export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
   const [feedUrl, setFeedUrl] = useState('')
   const addShow = useAddShow()
@@ -33,7 +22,7 @@ export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  const isValid = looksLikeUrl(feedUrl)
+  const isValid = feedUrl.trim().length > 0
   const isPending = addShow.isPending
 
   const errorMessage =
@@ -58,7 +47,7 @@ export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
       open={open}
       onClose={onClose}
       title="Add a show"
-      description="Paste an RSS feed URL and HushPod will start tracking new episodes."
+      description="Paste an RSS feed URL, an Apple Podcasts link, or a show's website — HushPod will find the feed."
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={isPending}>
@@ -79,25 +68,23 @@ export function AddShowDialog({ open, onClose }: AddShowDialogProps) {
     >
       <form id="add-show-form" onSubmit={handleSubmit} className="space-y-3">
         <div className="space-y-1.5">
-          <Label htmlFor="feed-url">RSS feed URL</Label>
+          <Label htmlFor="feed-url">Feed URL or Apple Podcasts link</Label>
           <div className="relative">
             <Rss className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <Input
               id="feed-url"
-              type="url"
-              inputMode="url"
+              type="text"
               autoFocus
-              placeholder="https://example.com/feed.xml"
+              placeholder="https://podcasts.apple.com/us/podcast/…  or  https://example.com/feed.xml"
               value={feedUrl}
               onChange={(e) => setFeedUrl(e.target.value)}
               disabled={isPending}
               className="pl-9"
-              aria-invalid={feedUrl.length > 0 && !isValid}
             />
           </div>
-          {feedUrl.length > 0 && !isValid && (
-            <p className="text-xs text-muted">Enter a valid http(s) URL.</p>
-          )}
+          <p className="text-xs text-muted">
+            Accepts an RSS feed, an Apple Podcasts URL or id, or a show&apos;s homepage.
+          </p>
         </div>
 
         {errorMessage && (

@@ -7,6 +7,7 @@ import { db } from '../db/index.js'
 import { shows, episodes } from '../db/schema.js'
 import { CreateShowSchema, UpdateShowSchema } from '../../shared/schemas.js'
 import { subscribeToFeed, checkShow } from '../services/feed.js'
+import { resolveFeedUrl } from '../services/discover.js'
 import { queue } from '../services/processor.js'
 import { SHOWS_DIR } from '../lib/config.js'
 import { logger } from '../lib/logger.js'
@@ -40,8 +41,9 @@ showsRoute.get('/', (c) => {
 })
 
 showsRoute.post('/', zValidator('json', CreateShowSchema), async (c) => {
-  const { feedUrl } = c.req.valid('json')
+  const { feedUrl: input } = c.req.valid('json')
   try {
+    const feedUrl = await resolveFeedUrl(input)
     const show = await subscribeToFeed(feedUrl)
     const { discovered } = await checkShow(show)
     enqueueShowPending(show.id)
