@@ -200,7 +200,7 @@ function EpisodeDescription({ text }: { text: string }) {
     <div className="space-y-1">
       <p
         ref={ref}
-        className={cn('text-sm leading-relaxed text-fg/80', !expanded && 'line-clamp-5')}
+        className={cn('font-serif text-[15px] leading-7 text-fg/85', !expanded && 'line-clamp-5')}
       >
         {text}
       </p>

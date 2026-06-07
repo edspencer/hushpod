@@ -3,57 +3,60 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Type — warm editorial. Fraunces (display) + Hanken Grotesk (text) +
+  /* Type — Fraunces (display) + Hanken Grotesk (text) + Newsreader (reading) +
      JetBrains Mono (numerals). Deliberately NOT Inter/Roboto/system. */
   --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 
-  /* Neutral palette — LIGHT (warm paper) is the default; .dark overrides below.
-     Atmosphere over flat white; refined warm ink instead of pure black. */
-  --color-bg: #faf6ee;
-  --color-surface: #fffdf8;
-  --color-surface-2: #f1eadc;
-  --color-border: #e6ddcc;
-  --color-muted: #786d5b;
-  --color-fg: #232019;
+  /* Neutral — crisp "white" canvas (light); navy in .dark below. Ink is a deep
+     navy, not pure black. */
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef1f6;
+  --color-border: #d8dee7;
+  --color-muted: #5a6678;
+  --color-fg: #0f1b2e;
 
-  /* Brand — terracotta. The accent text shades (300/400) here are tuned to read
-     on the light paper; .dark lifts them for the espresso background. */
-  --color-brand-50: #fbf0ea;
-  --color-brand-100: #f6dccf;
-  --color-brand-200: #ecb7a1;
-  --color-brand-300: #b65332;
-  --color-brand-400: #a8492c;
-  --color-brand-500: #bd5836;
-  --color-brand-600: #a1462b;
-  --color-brand-700: #813726;
-  --color-brand-800: #642d21;
-  --color-brand-900: #4a231a;
+  /* Brand — royal / navy blue. Text shades (300/400) tuned to read on white;
+     .dark lifts them for the navy background. */
+  --color-brand-50: #eef3fb;
+  --color-brand-100: #d9e4f6;
+  --color-brand-200: #abc4ea;
+  --color-brand-300: #2f5fb0;
+  --color-brand-400: #244f99;
+  --color-brand-500: #1e4488;
+  --color-brand-600: #193a73;
+  --color-brand-700: #15305e;
+  --color-brand-800: #11264a;
+  --color-brand-900: #0c1c37;
 
-  /* Semantic — earthy, distinct hues that sit inside the warm world. */
-  --color-success: #5b7a46;
-  --color-warning: #b07d22;
-  --color-danger: #b23b2e;
-  --color-info: #3c7a86;
+  /* Semantic — flag red is the second accent; plus gold, teal, green. */
+  --color-success: #3f7e52;
+  --color-warning: #c0891c;
+  --color-danger: #c8102e;
+  --color-info: #2e7d99;
 }
 
-/* Dark theme: espresso paper. Unlayered, so it wins when <html> has `dark`. */
+/* Dark theme: deep navy. Unlayered, so it wins when <html> has `dark`. */
 .dark {
-  --color-bg: #17130f;
-  --color-surface: #1f1a15;
-  --color-surface-2: #29221b;
-  --color-border: #382f26;
-  --color-muted: #a59a86;
-  --color-fg: #f1e9da;
+  --color-bg: #0b1626;
+  --color-surface: #122138;
+  --color-surface-2: #1a2c47;
+  --color-border: #28395a;
+  --color-muted: #94a4bd;
+  --color-fg: #eef3fb;
 
-  /* Lift the terracotta accents + a couple semantics for the dark background. */
-  --color-brand-300: #e8a07e;
-  --color-brand-400: #d9745a;
-  --color-success: #8aa86a;
-  --color-warning: #d8a23f;
-  --color-danger: #d96a59;
-  --color-info: #5fa4b2;
+  /* Lift the blue accents + red/semantics for the navy background. */
+  --color-brand-300: #8fb4e6;
+  --color-brand-400: #6b9add;
+  --color-brand-500: #3a6fc0;
+  --color-brand-600: #2f5ca5;
+  --color-success: #6fc08a;
+  --color-warning: #e0b34a;
+  --color-danger: #e85d70;
+  --color-info: #5fb0c4;
 }
 
 :root {

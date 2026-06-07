@@ -8,6 +8,7 @@ import { cleanupStale } from '@client/lib/playback'
 // Grotesk text + JetBrains Mono numerals.
 import '@fontsource-variable/fraunces'
 import '@fontsource-variable/hanken-grotesk'
+import '@fontsource-variable/newsreader'
 import '@fontsource-variable/jetbrains-mono'
 import './index.css'
 

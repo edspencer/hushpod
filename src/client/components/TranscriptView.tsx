@@ -74,7 +74,7 @@ export function TranscriptView({ transcript, ads, currentTime, className }: Tran
         ))}
       </div>
 
-      <div className="max-h-[28rem] overflow-y-auto rounded-md border border-border bg-surface-2/30 p-3 text-sm leading-relaxed">
+      <div className="max-h-[28rem] overflow-y-auto rounded-md border border-border bg-surface-2/30 p-3 font-serif text-[15px] leading-7">
         {segments.map((seg, i) => {
           const label = labelOf[i]
           const prevLabel = i > 0 ? labelOf[i - 1] : null

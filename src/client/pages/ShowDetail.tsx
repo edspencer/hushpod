@@ -112,7 +112,9 @@ export default function ShowDetail() {
             )}
           </div>
           {show.description && (
-            <p className="line-clamp-3 max-w-2xl text-sm text-muted">{show.description}</p>
+            <p className="line-clamp-3 max-w-2xl font-serif text-[15px] leading-7 text-muted">
+              {show.description}
+            </p>
           )}
           <p className="text-xs text-muted">
             {show.episodeCount} {show.episodeCount === 1 ? 'episode' : 'episodes'}
