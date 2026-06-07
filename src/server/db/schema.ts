@@ -15,6 +15,8 @@ export const shows = sqliteTable('shows', {
   episodeLimit: integer('episode_limit').notNull().default(10),
   removeAds: integer('remove_ads', { mode: 'boolean' }).notNull().default(true),
   removePromos: integer('remove_promos', { mode: 'boolean' }).notNull().default(true),
+  // Free-form, per-show guidance injected into the ad-detection prompt.
+  detectionGuidance: text('detection_guidance'),
   lastCheckedAt: integer('last_checked_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()

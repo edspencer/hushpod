@@ -27,9 +27,14 @@ export interface Show {
   episodeLimit: number
   removeAds: boolean
   removePromos: boolean
+  detectionGuidance: string | null
   lastCheckedAt: string | null
   episodeCount: number
 }
+
+export type ShowSettingsPatch = Partial<
+  Pick<Show, 'isActive' | 'episodeLimit' | 'removeAds' | 'removePromos' | 'detectionGuidance'>
+>
 
 export interface Episode {
   id: number
@@ -187,10 +192,8 @@ export const api = {
 
   getShow: (id: number): Promise<ShowWithEpisodes> => request<ShowWithEpisodes>(`/api/shows/${id}`),
 
-  updateShow: (
-    id: number,
-    patch: Partial<Pick<Show, 'isActive' | 'episodeLimit' | 'removeAds' | 'removePromos'>>,
-  ): Promise<Show> => request<Show>(`/api/shows/${id}`, { method: 'PATCH', json: patch }),
+  updateShow: (id: number, patch: ShowSettingsPatch): Promise<Show> =>
+    request<Show>(`/api/shows/${id}`, { method: 'PATCH', json: patch }),
 
   checkShow: (id: number): Promise<{ discovered: number }> =>
     request<{ discovered: number }>(`/api/shows/${id}/check`, {
@@ -343,10 +346,7 @@ export function useAddShow(): UseMutationResult<AddShowResponse, Error, string> 
 export function useUpdateShow(): UseMutationResult<
   Show,
   Error,
-  {
-    id: number
-    patch: Partial<Pick<Show, 'isActive' | 'episodeLimit' | 'removeAds' | 'removePromos'>>
-  }
+  { id: number; patch: ShowSettingsPatch }
 > {
   const qc = useQueryClient()
   return useMutation({

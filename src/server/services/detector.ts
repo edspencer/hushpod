@@ -78,8 +78,18 @@ function renderPreviousAds(previousAds: Ad[]): string {
   return `\nContext: the previous episode of this show contained ${summary}, so this show does run ads. Use this only as a hint that ads are likely — identify and label every segment solely from THIS transcript, and do not assume the same advertisers appear.\n`
 }
 
-function buildUserPrompt(segments: Transcript['segments'], previousAds: Ad[]): string {
-  return `${renderPreviousAds(previousAds)}\nTranscript:\n${renderTranscript(segments)}`
+function renderGuidance(guidance?: string | null): string {
+  const g = guidance?.trim()
+  if (!g) return ''
+  return `\nShow-specific guidance from the user — follow this carefully, it describes how THIS show's ads/promos behave:\n${g}\n`
+}
+
+function buildUserPrompt(
+  segments: Transcript['segments'],
+  previousAds: Ad[],
+  guidance?: string | null,
+): string {
+  return `${renderGuidance(guidance)}${renderPreviousAds(previousAds)}\nTranscript:\n${renderTranscript(segments)}`
 }
 
 /** Extract the first balanced JSON object from a string (repair path). */
@@ -110,9 +120,10 @@ async function detectWindow(
   settings: AppSettings,
   segments: Transcript['segments'],
   previousAds: Ad[],
+  guidance?: string | null,
 ): Promise<DetectedSegment[]> {
   const model = getModel(settings)
-  const prompt = buildUserPrompt(segments, previousAds)
+  const prompt = buildUserPrompt(segments, previousAds, guidance)
 
   try {
     const { object } = await generateObject({
@@ -169,6 +180,7 @@ export async function detectAds(
   transcript: Transcript,
   settings: AppSettings,
   previousAds: Ad[] = [],
+  guidance?: string | null,
 ): Promise<DetectedAd[]> {
   const segs = transcript.segments
   if (segs.length === 0) return []
@@ -179,13 +191,13 @@ export async function detectAds(
     const window = segs.slice(i, i + WINDOW_SEGMENTS)
     if (window.length === 0) break
     log.info(`detecting window ${i}-${i + window.length} of ${segs.length} segments`)
-    const found = await detectWindow(settings, window, previousAds)
+    const found = await detectWindow(settings, window, previousAds, guidance)
     raw.push(...found)
     if (i + WINDOW_SEGMENTS >= segs.length) break
   }
 
   const mapped = mapDetectionsToAds(raw, segs)
-  const verified = await verifyDetections(mapped, settings)
+  const verified = await verifyDetections(mapped, settings, guidance)
   log.info(`detected ${mapped.length} segment(s); kept ${verified.length} after verification`)
   return verified
 }
@@ -205,7 +217,11 @@ If the span lacks explicit ad language, it is editorial — answer isAd=false. Q
  * adversarially-framed auditor. The verifier gets ONLY the span text — no
  * previous-episode context and no surrounding transcript — so it can't be
  * primed the way the first pass was. Fails open (keeps the span) on error. */
-async function verifyDetections(ads: DetectedAd[], settings: AppSettings): Promise<DetectedAd[]> {
+async function verifyDetections(
+  ads: DetectedAd[],
+  settings: AppSettings,
+  guidance?: string | null,
+): Promise<DetectedAd[]> {
   const isSuspect = (a: DetectedAd) =>
     a.endTime - a.startTime > SUSPECT_MAX_SECONDS || a.confidence === 'low'
 
@@ -215,7 +231,7 @@ async function verifyDetections(ads: DetectedAd[], settings: AppSettings): Promi
       kept.push(a)
       continue
     }
-    const verdict = await verifySegment(a, settings)
+    const verdict = await verifySegment(a, settings, guidance)
     if (verdict.keep) {
       kept.push(a)
     } else {
@@ -231,11 +247,15 @@ async function verifyDetections(ads: DetectedAd[], settings: AppSettings): Promi
 async function verifySegment(
   ad: DetectedAd,
   settings: AppSettings,
+  guidance?: string | null,
 ): Promise<{ keep: boolean; evidence: string | null }> {
   const model = getModel(settings)
+  const g = guidance?.trim()
+    ? `\n\nThe user provided this guidance about this show's ads/promos — weigh it: ${guidance.trim()}`
+    : ''
   const prompt = `This span was flagged as a possible "${ad.label}"${
     ad.company ? ` for ${ad.company}` : ''
-  }. Is it genuinely an advertisement/promotion, or editorial content?\n\nSpan:\n"""\n${ad.adText.slice(0, 4000)}\n"""`
+  }. Is it genuinely an advertisement/promotion, or editorial content?${g}\n\nSpan:\n"""\n${ad.adText.slice(0, 4000)}\n"""`
   try {
     const { object } = await generateObject({
       model,

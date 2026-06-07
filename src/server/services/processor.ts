@@ -148,7 +148,7 @@ export async function processEpisode(episodeId: number): Promise<void> {
     // 3. Detect ads.
     setStatus(episodeId, 'detecting')
     const prevAds = previousEpisodeAds(show, episode)
-    const detected = await detectAds(transcript, settings, prevAds)
+    const detected = await detectAds(transcript, settings, prevAds, show.detectionGuidance)
 
     // Replace any prior ad records for this episode.
     db.delete(ads).where(eq(ads.episodeId, episodeId)).run()

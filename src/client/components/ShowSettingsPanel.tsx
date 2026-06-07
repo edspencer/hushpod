@@ -43,11 +43,15 @@ function Row({
 export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
   const update = useUpdateShow()
   const [limit, setLimit] = useState(String(show.episodeLimit))
+  const [guidance, setGuidance] = useState(show.detectionGuidance ?? '')
 
   // Keep local input in sync if the show changes from elsewhere.
   useEffect(() => {
     setLimit(String(show.episodeLimit))
   }, [show.episodeLimit])
+  useEffect(() => {
+    setGuidance(show.detectionGuidance ?? '')
+  }, [show.detectionGuidance])
 
   const patch = (p: Parameters<typeof update.mutate>[0]['patch']) =>
     update.mutate({ id: show.id, patch: p })
@@ -63,6 +67,12 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
     } else {
       setLimit(String(parsed))
     }
+  }
+
+  const commitGuidance = () => {
+    const trimmed = guidance.trim()
+    const current = show.detectionGuidance ?? ''
+    if (trimmed !== current) patch({ detectionGuidance: trimmed || null })
   }
 
   return (
@@ -128,6 +138,27 @@ export function ShowSettingsPanel({ show }: ShowSettingsPanelProps) {
             }
           />
         </div>
+
+        <div className="mt-4 space-y-1.5 border-t border-border pt-4">
+          <Label htmlFor="detection-guidance" className="cursor-default">
+            Detection guidance
+          </Label>
+          <p className="text-xs text-muted">
+            Free-form hints for the ad detector on this show. e.g. &ldquo;Sponsor reads are
+            60&ndash;90s near the start and a promo at the very end; the long interview is editorial
+            and must never be cut.&rdquo; Applies on the next (re)process.
+          </p>
+          <textarea
+            id="detection-guidance"
+            rows={4}
+            value={guidance}
+            onChange={(e) => setGuidance(e.target.value)}
+            onBlur={commitGuidance}
+            placeholder="Optional — describe how this show's ads/promos behave…"
+            className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+
         {update.isError && (
           <p className="mt-3 text-xs text-danger">Failed to save: {update.error.message}</p>
         )}

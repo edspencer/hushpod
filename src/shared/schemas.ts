@@ -134,4 +134,5 @@ export const UpdateShowSchema = z.object({
   episodeLimit: z.number().int().positive().optional(),
   removeAds: z.boolean().optional(),
   removePromos: z.boolean().optional(),
+  detectionGuidance: z.string().max(4000).nullable().optional(),
 })
