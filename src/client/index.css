@@ -3,12 +3,15 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg: #0a0a0b;
-  --color-surface: #131316;
-  --color-surface-2: #1c1c21;
-  --color-border: #26262c;
-  --color-muted: #8b8b94;
-  --color-fg: #ededf0;
+  /* Neutral palette — LIGHT values are the defaults; the .dark block below
+     overrides them. Utilities (bg-bg, text-fg, …) reference these vars, so
+     toggling the `dark` class on <html> re-themes the whole app. */
+  --color-bg: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f0f3;
+  --color-border: #e3e3e8;
+  --color-muted: #6b7280;
+  --color-fg: #18181b;
 
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
@@ -27,16 +30,25 @@
   --color-info: #38bdf8;
 }
 
+/* Dark theme: override the neutral tokens when <html> has the `dark` class.
+   Unlayered, so it wins over the layered @theme defaults when present. */
+.dark {
+  --color-bg: #0a0a0b;
+  --color-surface: #131316;
+  --color-surface-2: #1c1c21;
+  --color-border: #26262c;
+  --color-muted: #8b8b94;
+  --color-fg: #ededf0;
+}
+
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
 }
 
 html {
-  background-color: #ffffff;
-  color: #18181b;
-}
-
-html.dark {
   background-color: var(--color-bg);
   color: var(--color-fg);
 }
