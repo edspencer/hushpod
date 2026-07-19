@@ -1,0 +1,46 @@
+name: Release
+
+# Changesets-driven versioning. On every push to main this opens (or updates) a
+# "Version Packages" PR that bumps package.json + writes CHANGELOG.md from the
+# pending changesets. Merging that PR runs this workflow again, which — now that
+# there are no pending changesets — creates the git tag and the GitHub Release.
+#
+# We do NOT publish to npm (the package is private), so there is no NPM_TOKEN and
+# no `publish` script. The tag Changesets pushes matches `v*`, so the existing
+# docker.yml workflow still fires and publishes the image for the release.
+on:
+  push:
+    branches: [main]
+
+# Cancel an in-flight run if another push lands, so the Version PR stays current.
+concurrency: release-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create tags + the GitHub Release, push the Version PR branch
+      pull-requests: write # open / update the "Version Packages" PR
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # changesets needs full history to compute the changelog
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create Version PR / tag + GitHub Release
+        uses: changesets/action@v1
+        with:
+          # `version` bumps package.json and writes the changelog on the PR.
+          # With no `publish` set, merging the Version PR just tags + releases
+          # (createGithubReleases defaults to true) — no registry push.
+          version: pnpm changeset version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
