@@ -282,6 +282,31 @@ pnpm test
 pnpm build
 ```
 
+## Releasing
+
+Versioning, the changelog, git tags, and GitHub Releases are managed with
+[Changesets](https://github.com/changesets/changesets). We do **not** publish to
+npm — the package is `private` — so this is versioning + `CHANGELOG.md` +
+tag/Release only.
+
+**Adding a changeset (do this in any PR with a user-visible change):**
+
+```sh
+pnpm changeset          # pick the bump (patch / minor / major), write a summary
+```
+
+That writes a small markdown file under `.changeset/`; commit it with your
+change. Docs-only or internal refactors that don't warrant a release note can
+skip it. To preview what's pending, run `pnpm changeset status`.
+
+**How a release happens (automated):** when changesets land on `main`, the
+[Release workflow](.github/workflows/release.yml) opens a **"Version Packages"**
+PR that bumps `version` in `package.json` and folds the pending changesets into
+`CHANGELOG.md`. Merging that PR tags the commit `vX.Y.Z` and creates the matching
+**GitHub Release**. That `v*` tag also triggers [`docker.yml`](.github/workflows/docker.yml),
+so the multi-arch image publishes for the release automatically. No tags or
+version bumps are pushed by hand.
+
 ## Key design decisions
 
 - **The LLM never emits timestamps.** Whisper segments get stable ids; the LLM
