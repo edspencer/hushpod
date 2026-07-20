@@ -1,5 +1,15 @@
 # hushpod
 
+## 0.9.3
+
+### Patch Changes
+
+- [#2](https://github.com/edspencer/hushpod/pull/2) [`ed68f03`](https://github.com/edspencer/hushpod/commit/ed68f03c45bfa387dedabd7ab5e04e4dff0c9f17) Thanks [@edspencer](https://github.com/edspencer)! - Adopt Changesets for versioning and releases. Version bumps, `CHANGELOG.md`, git
+  tags, and GitHub Releases are now generated from changesets by the Release
+  workflow instead of hand-made release commits and manually pushed tags. No npm
+  publishing (the package stays private); the `v*` tag still triggers the Docker
+  image publish.
+
 <!--
 Maintained by Changesets (see "Releasing" in the README). New releases are added
 directly under the heading above. Entries through 0.9.2 are a historical summary
